@@ -1,0 +1,569 @@
+---
+title: "bird_quant_analysis"
+author: "Jackson Barratt Heitmann"
+date: "4/4/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+So this first section I'm taking my raw data, and manipulating it into a community
+matrix that I can perform some statistics on afterward. 
+
+```{r}
+library(lattice)
+library(ggplot2)
+library(dplyr)
+library(vegan)
+# install.packages("dummies")
+library(dummies)
+
+
+dat <- read.csv("~/raw_data - bird_data_year1.csv")
+
+#missing HH34 with 3 replicates, SP03 has 4 replicates
+dat2 <- read.csv("~/raw_data - bird_data_year2.csv")
+
+#all the bird data togehter
+
+dat_all <- read.csv("~/raw_data - all_bird_data.csv")
+
+# assuming each species only recorded once per point count then
+# species richness (sr) is just number of rows which function n() computes
+dat_sr <- dat %>%
+    group_by(date, site, site_type, block, wetland_id) %>%
+    summarise(sr = n())
+
+#second year data
+
+dat_sr <- dat2 %>%
+    group_by(date, site, site_type, block, wetland_id) %>%
+    summarise(sr = n())
+
+# all data together
+
+id3 <- with(dat_all, paste(wetland_id, year))
+comm3 <- with(dat_all, tapply(total, list(id3, species), function(x) sum(x)))
+comm3 <- ifelse(is.na(comm3), 0, comm3)
+
+# need to make a community matrix with species as columns, and point count sites
+# as rows
+# year 1
+
+id <- with(dat, paste(wetland_id, year))
+comm <- with(dat, tapply(total, list(id, species), function(x) sum(x)))
+comm <- ifelse(is.na(comm), 0, comm)
+
+#year 2
+
+id2 <- with(dat2, paste(wetland_id, year))
+comm2 <- with(dat2, tapply(total, list(id2, species), function(x) sum(x)))
+comm2 <- ifelse(is.na(comm2), 0, comm2)
+
+# creating "comm" as a data frame to perform statistics on (i.e. Shannon-Weiner Bio
+# Index)
+comm <- as.data.frame(comm)
+comm_2 <- as.data.frame(comm2)
+comm3 <- as.data.frame(comm3)
+
+#I need to ask Dan about that thing again to sum every 3 rows across all the columns 
+comm_3_actual <- cbind(comm_3_samp, comm_2)
+library(dplyr)
+actual_comm_matrix_2 <- comm_3_actual %>% group_by(comm_3_samp) %>% summarise_all(sum)
+
+matrix_summed_by_wetland <- actual_comm_matrix[,-1]
+
+#bird year 2 data
+rownames(matrix_summed_by_wetland_2) <- c('HH01', 'HH02', 'HH04',
+                                  'HH05', 'HH07', 'HH13', 'HH14',
+                         'HH17', 'HH22', 'HH30', 'HH31',
+                         'HH33', 'HH34', 'HH34r', 'HH43', 'HH45',
+                         'HH46', 
+                         'HH48', 
+                         'HH49', 'HH50', 
+                         'SP01', 'SP02', 'SP03', 
+                         'SP05', 'SP07', 'SP08', 'SP09', 
+                         'SP11', 'SP12', 'SP13', 'SP16', 
+                         'UP01',
+                         'UP02', 'UP03', 
+                         'UP04', 'UP05', 'UP06')
+
+#bird year 1 data
+rownames(matrix_summed_by_wetland) <- c('HH02', 'HH04', 'HH07', 'HH13', 'HH14',
+                         'HH17', 'HH22', 'HH33', 'HH34', 'HH48', 
+                         'HH49', 'HH50', 'SP01', 'SP02', 'SP03', 
+                         'SP05', 'SP07', 'SP08', 'SP09', 'UP01',
+                         'UP02', 'UP03', 'UP04', 'UP05', 'UP06')
+
+
+shan_comm <- diversity(matrix_summed_by_wetland, index = "shannon")
+shan_comm
+
+shan_comm_2 <- diversity(matrix_summed_by_wetland, index = "shannon")
+shan_comm_2
+
+#SP03 has 4 samples, need to get rid of one of those
+#bird year 2 data
+comm_3_samp <- c('HH01', 'HH01', 'HH01', 
+                 'HH02','HH02', 'HH02', 
+                 'HH04', 'HH04', 'HH04', 
+                 'HH05', 'HH05', 'HH05', 
+                  'HH07', 'HH07', 'HH07', 
+                 'HH13', 'HH13', 'HH13',
+                'HH14', 'HH14', 'HH14', 
+                 'HH17', 'HH17','HH17',
+                 'HH22', 'HH22', 'HH22', 
+                'HH30', 'HH30', 'HH30', 
+                'HH31', 'HH31', 'HH31',
+                'HH33', 'HH33', 'HH33', 
+                'HH34', 'HH34', 
+                'HH34r', 'HH34r', 'HH34r', 
+                'HH43', 'HH43', 'HH43',
+                 'HH45', 'HH45', 'HH45', 
+                'HH46', 'HH46', 'HH46',
+                'HH48', 'HH48', 'HH48', 
+                'HH49', 'HH49', 'HH49', 
+                'HH50', 'HH50', 'HH50', 
+                'SP01', 'SP01', 'SP01',
+                'SP02', 'SP02', 'SP02', 
+                'SP03', 'SP03', 'SP03', 'SP03', 
+                'SP05','SP05', 'SP05', 
+                'SP07', 'SP07', 'SP07', 
+                'SP08', 'SP08','SP08', 
+                'SP09','SP09', 'SP09',
+                 'SP11', 'SP11', 'SP11', 
+                 'SP12', 'SP12', 'SP12',
+                 'SP13', 'SP13', 'SP13',
+                 'SP16', 'SP16', 'SP16',
+                 'UP01', 'UP01', 'UP01',
+                  'UP02','UP02', 'UP02', 
+                'UP03', 'UP03', 'UP03', 
+                'UP04', 'UP04', 'UP04', 
+                'UP05','UP05', 'UP05',  
+                'UP06', 'UP06','UP06')
+
+
+
+#bird year 1 data
+comm_2_samp <- c('HH02','HH02', 'HH02', 'HH04', 'HH04', 'HH04',
+                              'HH07', 'HH07', 'HH07', 'HH13', 'HH13', 'HH13',
+                              'HH14', 'HH14', 'HH14', 'HH17', 'HH17',
+                         'HH17', 'HH22', 'HH22', 'HH22',
+                         'HH33', 'HH33', 'HH33', 'HH34', 'HH34', 'HH34', 
+                         'HH48', 'HH48', 'HH48', 'HH49', 'HH49', 
+                         'HH49', 'HH50', 'HH50', 'HH50', 'SP01', 'SP01', 'SP01',
+                         'SP02', 'SP02', 'SP02', 'SP03', 'SP03', 'SP03', 'SP05',
+                         'SP05', 'SP05', 'SP07', 'SP07', 'SP07', 'SP08', 'SP08',
+                         'SP08', 'SP09','SP09', 'SP09', 'UP01', 'UP01', 'UP01',
+                         'UP02','UP02', 'UP02', 'UP03', 'UP03', 'UP03', 'UP04', 
+                         'UP04', 'UP04', 'UP05','UP05', 'UP05',  'UP06', 'UP06',
+                         'UP06')
+
+
+
+```
+```{r}
+dat <- read.csv("~/raw_bird_data.csv")
+
+```
+
+Now that I created a community matrix, and actually found the Shannon-Weiner
+Biodiversity Index for each wetland, it was easier to manually plug them into a different
+data sheet that contained all of my wetland assessment vegetation data. 
+So I read that file in, and create some models, test for normal distribution. 
+
+```{r}
+
+# once I compute shannon-weiner index, It is easiest to manually plug those numbers
+# in as a column in my wetland attribute Google Sheets table
+
+# quick ANOVA
+
+summary(aov())
+
+# all my wetland attribute data with the Shanon-Weiner Bio Index listed as "shan_sr"
+wet_attribute_only <- read.csv("~/raw_data - just_wet_attribute_2.csv")
+
+#histogram of the shan_sr_2
+histogram(~ (shan_sr_2), data = wet_attribute_only)
+
+?t.test
+
+# boxplot of wetland v upland again
+
+boxplot(wet_attribute_only$shan_sr_2 ~ wet_attribute_only$type)
+t.test(shan_sr_2 ~ type, data = wet_attribute_only)
+
+ggplot() + geom_boxplot(data = wet_attribute_only, aes(x = type, y = shan_sr_2, colour = type)) + theme_bw()
+
+# checking for a normal distribution, it looks good
+shapiro.test(wet_attribute_only$shan_2_log)
+
+shan_2_log <- sqrt(wet_attribute_only$shan_sr_2)
+?cbind
+wet_attribute_only <- cbind(wet_attribute_only,shan_2_log)
+
+# the actual ANOVA table with all 3 vegetation variables 
+sr_22 <- (lm(shan_sr_2 ~ canopy_cover, data = wet_attribute_only))
+
+plot(sr_22)
+
+# none of these are statistically signifcant, but I've got 3 plots to visulaize the data, it's apparent that I don't have great sample sizes at lower canopy class and midstory levels 
+
+# boxplot shan div ~ canopy cover
+ggplot(data = wet_attribute_only, 
+       mapping = aes(x = canopy_cover, y = shan_sr, colour = canopy_cover)) + 
+  geom_point() + geom_boxplot() + theme_bw() + 
+  xlab("Canopy Cover (%), broken into 4 categories") +
+  ylab("Shannon-Weiner Index of Biodiversity at wetland sites")
+
+
+# boxplot shan div ~ midstory cover
+ ggplot(data = wet_attribute_only, 
+       mapping = aes(x = midstory_cover, y = shan_sr_1, colour = midstory_cover)) + 
+  geom_point() + geom_boxplot() + theme_bw() + 
+  xlab("Midstory Cover (%), broken into 4 categories") +
+  ylab("Shannon-Weiner Index of Biodiversity at wetland sites")
+
+ # boxplot shan div ~ herbaceous cover
+ ggplot(data = wet_attribute_only, 
+       mapping = aes(x = herb_layer, y = shan_sr, colour = herb_layer)) + 
+  geom_point() + geom_boxplot() + theme_bw() + 
+  xlab("Herb Layer, broken into 4 categories") +
+  ylab("Shannon-Weiner Index of Biodiversity at wetland sites")
+
+```
+
+```{r}
+# Working on the LiDAR data to create similar diversity ~ canopy cover models
+library(lidR)
+library(sp)
+
+las <- readLAS('./merged_Stono_all_returns_clipped.las', select='xyzcr' )
+
+## coordinate change to utm for Stono
+coords_ll <- las@data[ , c('X', 'Y')]
+coords_ll <- SpatialPoints(coords_ll, 
+                           proj4string =  CRS("+proj=longlat +datum=NAD83 +no_defs +ellps=GRS80 +towgs84=0,0,0"))
+
+#plot(coords_ll)
+coords_utm <- sp::spTransform(coords_ll,
+                              CRSobj = CRS("+proj=utm +zone=17 +datum=WGS84"))
+plot(coords_utm)
+
+las@data$X <- coordinates(coords_utm)[ , 1]
+las@data$Y <- coordinates(coords_utm)[ , 2]
+
+#checking to see if the coordinates changed to UTM properly
+head(las@data)
+table(las@data$Classification)
+
+plot(las)
+
+las_5 <- subset(las)
+
+# str(las)
+
+# las <- readLAS('./USGS_LPC_SC_SavannahPeeDee_2019_B19_10493971.laz')
+
+plot(las)
+
+chm <- rasterize_canopy(las, 2, p2r())
+col <- random.colors(50)
+plot(chm, col = col)
+
+plot(las, color = "ScanAngleRank", bg = "white", axis = TRUE, legend = TRUE)
+
+plot(las, color ="RGB")
+plot(las, color = "Intensity", breaks = "quantile", bg = "white")
+
+x <- plot(las, bg = "white", size = 3)
+add_dtm3d(x, dtm)
+
+x <- plot(las, bg = "white", size = 3)
+add_treetops3d(x, ttops)
+
+gnd <- filter_ground(las)
+plot(gnd, size = 3, bg = "white", color = "Classification")
+
+
+dtm <- rasterize_terrain(las, 1, knnidw())
+plot(dtm, col = gray(1:50/50))
+
+nlas <- las - dtm
+plot(nlas, size = 4, bg = "white")
+hist(filter_ground(nlas)$Z, main = "", xlab = "Elevation")
+hist(nlas$Z)
+
+
+#smaller ws argument means smaller area to compute local maxima
+ttops <- locate_trees(las, lmf(ws = 5))
+ttops
+
+plot(chm, col = height.colors(50))
+plot(sf::st_geometry(ttops), add = TRUE, pch = 3)
+
+x <- plot(las, bg = "white", size = 4)
+add_treetops3d(x, ttops)
+
+#larger ws argument = bigger area to compute local maxima
+ttops_11m <- locate_trees(las, lmf(ws = 11))
+plot(sf::st_geometry(ttops_11m), add = TRUE, pch = 3)
+
+
+plot(chm, col = height.colors(50))
+plot(las)
+
+plot(sf::st_geometry(ttops), pch = 3)
+
+# normalizig height by creating a dtm, seems like maybe we don't have to do this
+dtm <- rasterize_terrain(las, 1, knnidw())
+plot(dtm, col = gray(1:50/50))
+
+nlas <- las - dtm
+plot(nlas, size = 4, bg = "white")
+
+# checking to see if we actually normalized the height
+hist(filter_ground(nlas)$Z, breaks = seq(-0.6, 0.6, 0.01), main = "", xlab = "Elevation")
+
+#
+#
+#
+#
+#trying to clip and subset based on plot locations
+
+UP05 <- clip_circle(las_segmented_trees, x =  575908.12, y = 3622341.77, radius = 25)
+
+SP02 <- clip_circle(las_segmented_trees, x =  575952.22, y = 3622456.3, radius = 25)
+
+SP07 <- clip_circle(las_segmented_trees, x =  576855.42, y = 3623070.8, radius = 25)
+
+SP03 <- clip_circle(las_segmented_trees, x =  576310.19, y = 3622208.49, radius = 25)
+
+SP08 <- clip_circle(las_segmented_trees, x =  576084.84, y = 3622170.06, radius = 25)
+
+SP09 <- clip_circle(las_segmented_trees, x =  576435.93, y = 3623036.52, radius = 25)
+
+SP05 <- clip_circle(las_segmented_trees, x =  576765.98, y = 3623368.34, radius = 25)
+
+SP01 <- clip_circle(las_segmented_trees, x =  576625.84, y = 3622952.62, radius = 25)
+
+UP06 <- clip_circle(las_segmented_trees, x =  576727.02, y = 3623075.35, radius = 25)
+
+
+#mean tree height
+cloud_metrics(UP05, func = ~mean(Z))
+cloud_metrics(SP02, func = ~mean(Z))
+cloud_metrics(SP07, func = ~mean(Z))
+cloud_metrics(SP03, func = ~mean(Z))
+cloud_metrics(SP08, func = ~mean(Z))
+cloud_metrics(SP09, func = ~mean(Z))
+cloud_metrics(SP05, func = ~mean(Z))
+cloud_metrics(SP01, func = ~mean(Z))
+
+# canopy cover model
+
+# chm <- rasterize_canopy(las, res = 0.5, algorithm = p2r())
+
+# this one creates a subcircle, to reduce the number of empty pixels
+# this is on the normalized height model
+
+chm <- rasterize_canopy(las, res = 0.5, 
+                        algorithm = p2r(subcircle = 0.15))
+col <- height.colors(25)
+plot(chm, col = col)
+
+chm_2 <- rasterize_canopy(nlas, 0.5, pitfree(subcircle = 0.2))
+plot(las, bg = "white", size = 4)
+
+# trying to get actual math
+tree_metrics(las_segmented_trees, func = .stdmetrics)
+
+metrics <- crown_metrics(las_segmented_trees, func = ccm, geom = "convex")
+plot(metrics["z_max"], pal = hcl.colors)
+
+cloud_metrics(las, func = ~mean(Z))
+
+metrics <- cloud_metrics(las, func = .stdmetrics_z)
+str(head(metrics)) # output is a list
+
+# trying to segment trees
+?segment_trees
+las_segmented_trees <- segment_trees(nlas, li2012(R = 3, speed_up = 5))
+
+plot(las_segmented_trees, color = "treeID")
+
+#choosing a random tree, and getting multiple measurments
+tree110 <- filter_poi(las_segmented_trees, treeID == 110)
+plot(tree110, size = 8, bg = "white")
+
+# tree crowns
+
+crowns<- las_segmented_trees()
+crowns <- crown_metrics(las_segmented_trees, 
+                        func = .stdtreemetrics, geom = "convex")
+plot(crowns["convhull_area"], main = "Crown area (convex hull)")
+
+# this was used in the lidR vignette, got an error message
+# algo <- dalponte2016(chm, ttops_11m)
+# las <- segment_trees(las, algo) # segment point cloud
+# plot(las, bg = "white", size = 4, color = "treeID") # visualize trees
+# treetop shiny tool
+launchApp()
+
+
+```
+*Doing everything for Halidon*
+
+```{r}
+
+las_hh <- readLAS('./HH_merged_all_returns_clipped.las', select='xyzc')
+
+## coordinate change for Halidon
+coords_hh <- las_hh@data[ , c('X', 'Y')]
+coords_hh <- SpatialPoints(coords_hh, 
+                           proj4string =  CRS("+proj=longlat +datum=NAD83 +no_defs +ellps=GRS80 +towgs84=0,0,0"))
+
+#plot(coords_hh)
+coords_utm_hh <- sp::spTransform(coords_hh,
+                              CRSobj = CRS("+proj=utm +zone=17 +datum=WGS84"))
+#plot(coords_utm_hh)
+
+las_hh@data$X <- coordinates(coords_utm_hh)[ , 1]
+las_hh@data$Y <- coordinates(coords_utm_hh)[ , 2]
+
+plot(las_hh)
+
+chm_hh <- rasterize_canopy(las_hh, 2, p2r())
+col <- random.colors(50)
+plot(chm_hh, col = col)
+
+plot(las_hh, bg = "white", axis = TRUE, legend = TRUE)
+
+# theres definitley some error points in here
+
+cloud_metrics(nlas_hh, func = ~max(Z))
+# 96.41 m is definitley not the highest tree, so we need to filter
+
+#took everything out below 0, and everything over 50m
+las_hh_norm <- filter_poi(las_hh, Z >= 0, Z <= 50)
+
+# normailzig height by creating a dtm, seems like maybe we don't have to do this
+nlas_hh <- normalize_height(las_hh_norm, knnidw())
+plot(nlas_hh, size = 4, bg = "white")
+
+#segmenting trees
+las_segmented_trees_hh <- segment_trees(nlas_hh, li2012(R = 3, speed_up = 5))
+
+plot(las_segmented_trees_hh, color = "treeID")
+
+# ##########
+# clipping the .las to individual wetlands
+HH22 <- clip_circle(las_segmented_trees_hh, x =  610406.39	, y = 3658329.59, radius = 25)
+
+HH17 <- clip_circle(las_segmented_trees_hh, x =  610154.72	, y = 3658456.49, radius = 25)
+
+HH14 <- clip_circle(las_segmented_trees_hh, x =  609835.04	, y = 3658404.12, radius = 25)
+
+HH50 <- clip_circle(las_segmented_trees_hh, x =  609042.44	, y = 3657299.73, radius = 25)
+
+HH48 <- clip_circle(las_segmented_trees_hh, x =  609012.22	, y = 3656910.19, radius = 25)
+
+HH49 <- clip_circle(las_segmented_trees_hh, x =  608983.27	, y = 3656994.14, radius = 25)
+
+HH07 <- clip_circle(las_segmented_trees_hh, x =  609592.11	, y = 3659169.83, radius = 25)
+
+HH02 <- clip_circle(las_segmented_trees_hh, x =  607877.89	, y = 3659680.84, radius = 25)
+
+HH04 <- clip_circle(las_segmented_trees_hh, x =  608471.13	, y = 3659729.52, radius = 25)
+
+HH34 <- clip_circle(las_segmented_trees_hh, x =  609706.05	, y = 3657831.62, radius = 25)
+
+HH13 <- clip_circle(las_segmented_trees_hh, x =  609560.69	, y = 3657970.81, radius = 25)
+
+HH33 <- clip_circle(las_segmented_trees_hh, x =  609759.47	, y = 3657648.15, radius = 25)
+
+# computing the means 
+cloud_metrics(HH22, func = ~mean(Z))
+cloud_metrics(HH17, func = ~mean(Z))
+cloud_metrics(HH14, func = ~mean(Z))
+cloud_metrics(HH50, func = ~mean(Z))
+cloud_metrics(HH48, func = ~mean(Z))
+cloud_metrics(HH49, func = ~mean(Z))
+cloud_metrics(HH07, func = ~mean(Z))
+cloud_metrics(HH02, func = ~mean(Z))
+cloud_metrics(HH04, func = ~mean(Z))
+cloud_metrics(HH34, func = ~mean(Z))
+cloud_metrics(HH13, func = ~mean(Z))
+cloud_metrics(HH33, func = ~mean(Z))
+
+
+## creating a column of the tree heights 
+tree_height_lidar <- c(6.294029, 5.730147, 9.405665, 8.455718,
+                       6.337186, 9.038951, 8.733791, NA, NA, 
+                       10.37293, 5.043724, 11.58307, 7.829237,
+                       7.829237, 5.059275, 6.577072, 5.882933,
+                       11.58944, 5.521941, 7.56211, 4.156456)
+wet_attribute_only <- cbind(wet_attribute_only, tree_height_lidar)
+
+?cbind
+
+```
+
+```{r}
+# creating an lm model with the tree heights as continuous
+
+summary(lm(shan_sr ~ tree_height_lidar, data = wet_attribute_only))
+
+shapiro.test(wet_attribute_only$tree_height_lidar)
+
+ggplot(data = wet_attribute_only, 
+       mapping = aes(x = tree_height_lidar, y = shan_sr)) + geom_point() +  geom_smooth(method = lm) + theme_bw() + xlab(" Mean Tree Height (m)") + ylab("Shannon-Weiner Index of Biodiversity at wetland sites")
+
+```
+
+```{r}
+# trying to get an rda with env ~ comm
+# subset df3 to only get the wetlands
+bird_matrix <- df3[1:19, ]
+
+#trying to make the env matrix same size
+
+#got just the wetlands with no NAs
+wet_1 <- wet_attribute_only[c(1:7, 10:21), ]
+wet_1_updated <- wet_1[order(wet_1$wetland_id), ]
+
+#take out stuff that I don't need
+wet_2 <- wet_1_updated[, c(13, 16:19, 22, 26, 44)]
+wet_3 <- wet_2[ , 2:8]
+
+wet_3$canopy_cover <- factor(wet_3$canopy_cover)
+wet_3$canopy_dom <- factor(wet_3$canopy_dom)
+wet_3$midstory_cover <- factor(wet_3$midstory_cover)
+wet_3$midstory_dom <- factor(wet_3$midstory_dom)
+wet_3$herb_layer <- factor(wet_3$herb_layer)
+#actually making the freaking rda and plotting it
+rda_birds <- rda(bird_matrix ~ wet_3$tree_height_lidar + wet_3$herb_layer + wet_3$canopy_dom + wet_3$midstory_dom)
+rda_birds
+
+plot(rda_birds)
+
+RsquareAdj(rda_birds)
+
+anova(rda_birds, by='margin', permutations=100)
+
+canopy_cover <- dummy(wet_3$canopy_cover)
+
+
+```
+
+```{r}
+plot(rda_birds, type='n', scaling=1)
+orditorp(rda_birds, display='sp', cex=0.5, scaling=1, col='blue')
+text(rda_birds, display='cn', col='red')
+```
+

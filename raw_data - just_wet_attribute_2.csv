@@ -1,0 +1,40 @@
+date,time_start,time_end,property,type,block,wetland_id,bird_sr,shan_sr_1,shan_sr_2,agriculture,ditched,rain_24,inch_24,wetland_type,hydrology,last_dry,canopy_cover,canopy_dom,midstory_cover,midstory_dom,debris_cover,debris_dom,herb_layer,dom_herb_group,water_cover,current_water_max,high_water_mark,burn_scars,duff,duff_depth,hydro_dist,wetland_disturbance,natural_community,canopy_dom_upland,canopy_cover_upland,midstory_cover_upland,midstory_dom_upland,herb_cover_upland,herb_dom_upland,stumps,burn_scars_upland,duff,duff_depth_upland,time_last_fire
+,,,halidon,wetland,,HH01,,,1.735126,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+9/10/2021,10:41,10:55,halidon,wetland,4,HH02,9,2.041345,2.293413,T,T,T,4,Dome Swamp,Ephem,Spring 2021,75-100,Black Gum,0-25,Sweetgum,0-25,,Whole basin,"Grasses, Sedges",0-25,8,24,F,F,,Ditch,None,Mesic Flatwood,Hardwood mix,0-25,0-25,Loblolly and Sweetgum,75-100,"Switchcane, chasmanthiom",T,T,F,,
+9/10/2021,11:12,11:22,halidon,wetland,4,HH04,8,1.880985,2.240322,T,T,T,4,Dome Swamp,Ephem,Spring 2021,50-75,Black Gum,0-25,Wax Myrtle,0-25,,Edges,Sedges,75-100,18,24,F,,,Ditch,None,Mesic Flatwood,Longleaf,0-25,0,None,75-100,Little Blue Stem,T,T,F,,2020
+,,,halidon,wetland,,HH05,,,2.246214,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+9/10/2021,11:30,11:50,halidon,wetland,4,HH07,12,2.399204,2.053095,T,T,T,4,Dome Swamp,Ephem,Spring 2021,75-100,"Black Gum, Loblolly, Laurel Oak",0-25,None,25-50,,Patchy,Sedges,75-100,8,24,T,T,1,,Bedding,Mesic Flatwood,Longleaf,50-75,0,None,75-100,"Clethia, Ilex glatera",F,T,F,,
+9/10/2021,10:42,11:00,halidon,wetland,1,HH13,10,2.205155,2.295812,T,T,T,4,Dome Swamp,Ephem,Summer 2021,75-100,Black Gum,0-25,Sweetgum,0-25,,Most of basin,Sedges,75-100,24,24,T,T,0.5,Ditch,,Mesic Flatwood,Slash,25-50,25-50,Sweetgum,75-100,Mix,T,T,F,,
+9/10/2021,12:26,12:42,halidon,wetland,2,HH14,12,2.400563,2.385429,T,T,T,4,Dome Swamp,Ephem,June 2021,50-75,Black Gum,0-25,Persimmon,0-25,,Patchy,Sedges,75-100,8,24,F,F,,Ditch,,Mesic Flatwood,Loblolly,25-50,0-25,None,75-100,Mix,T,T,F,,
+9/10/2021,1:00,1:20,halidon,wetland,2,HH17,8,1.634164,1.970181,T,T,T,4,Dome Swamp,Ephem,June 2021,75-100,Black Gum,0-25,None,0-25,,Whole basin,Sedges,,,,T,F,,Ditch,,Mesic Flatwood,Loblolly,50-75,0-25,None,75-100,Mix,T,T,F,,
+9/10/2021,2:05,,halidon,wetland,2,HH22,8,1.945317,2.472484,T,T,T,4,Dome Swamp,Ephem,Summer 2021,75-100,Black Gum,25-50,"Sweetgum, Black Gum",0-25,,Most of basin,Sedges,50-75,,,F,F,,Ditch,,Mesic Flatwood,Loblolly,,25-50,Sweetgum,75-100,Mix,T,,,,
+9/10/2021,2:10,2:28,halidon,wetland,,HH24,,,,T,T,T,4,Depression Marsh,Ephem,April/June 2021,0-25,Black Gum,0-25,None,0-25,,Most of basin,"Grasses, Sedges",75-100,36,36,T,F,,Ditch,,Mesic Flatwood,Loblolly,25-50,0-25,Sweetgum and Gallberry,75-100,Mix,T,T,F,,
+,,,halidon,wetland,,HH30,,,1.898927,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,halidon,wetland,,HH31,,,2.274241,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+9/10/2021,1:39,1:52,halidon,wetland,,HH32,,,,T,T,T,4,Depression Marsh,Ephem,April 2021,0-25,Black Gum,0-25,Sweetgum,0-25,,Whole basin,"Sedges, Forbs",75-100,12,12,T,F,,Ditch,None,Mesic Flatwood,Loblolly and Slash,25-50,25-50,Sweetgum,75-100,Mix,T,T,,,
+9/10/2021,11:30,11:50,halidon,wetland,1,HH33,13,2.358831,2.481502,T,T,T,4,Dome Swamp,Ephem,June 2021,25-50,Black Gum,25-50,Persimmon,25-50,,Whole basin,Sedges,75-100,12,12,T,F,,Ditch,,Mesic Flatwood,Loblolly and Slash,50-75,0-25,Sweetgum,75-100,Mix,T,T,F,,
+9/10/2021,11:09,11:27,halidon,wetland,1,HH34,9,2.06207,2.011242,T,T,T,4,Dome Swamp,Ephem,Summer 2021,50-75,Black Gum,0-25,Sweetgum,0-25,,Whole basin,"Sedges, Ferns",75-100,18,18,T,T,1,Ditch,,Mesic Flatwood,Slash,50-75,0-25,Sweetgum and Persimmon,75-100,Mix,T,T,F,,
+,,,halidon,wetland,,HH34r,,,2.265664,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,halidon,wetland,,HH43,,,1.90542,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,halidon,wetland,,HH45,,,1.430103,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,halidon,wetland,,HH46,,,1.55756,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+9/10/2021,1:05,1:33,halidon,wetland,3,HH48,8,1.825564,2.154025,T,T,T,4,Dome Swamp,Ephem,June 2021,50-75,Black Gum,0-25,Sweetgum,0-25,,Most of basin,"Grasses, Sedges",75-100,18,18,T,T,,Ditch,,Mesic Flatwood,Loblolly and Slash,50-75,0-25,Sweetgum and Loblolly,75-100,None,T,T,F,,
+9/10/2021,12:45,1:03,halidon,wetland,3,HH49,13,2.491505,2.339936,T,T,T,4,Dome Swamp,Ephem,June 2021,50-75,Black Gum,0-25,"Sweetgum, Chinese Tallow",0-25,,Most of basin,"Grasses, Sedges",75-100,30,36,T,T,,Ditch,,Mesic Flatwood,Loblolly and Slash,50-75,0-25,Sweetgum,75-100,None,T,T,F,,
+9/10/2021,12:24,12:44,halidon,wetland,3,HH50,9,2.028597,2.218702,T,T,T,4,Dome Swamp,Ephem,June 2021,75-100,"Sweetgum, Loblolly",0-25,Chinese Tallow,0-25,,Patchy,Grasses,0-25,0,0,T,T,,Ditch,,Mesic Flatwood,Loblolly and Slash,50-75,0-25,None,75-100,None,T,T,F,,
+11/12/2021,11:15,,stono,wetland,6,SP05,7,1.841878,2.477073,,,T,,Depression Marsh,Ephem,Summer 2021,75-100,Loblolly,25-50,Bayberry,0-25,,Patchy,Sedges,50-75,6.5,9,F,T,1,,,Savannah,Magnolia grandiflora,0-25,0-25,None,75-100,Chinese Tallow,T,T,,,2020
+11/12/2021,10:54,,stono,wetland,6,SP09,11,2.322188,2.32183,T,,T,,Pond,Perm,None,0-25,Red Maple,0-25,Red Maple,0-25,,Edges,Grasses,75-100,36,36,F,T,,Pond,,Savannah,Longleaf,0-25,0-25,Longleaf,75-100,Dog Fennel,T,T,T,3,
+11/12/2021,10:38,,stono,wetland,6,SP01,10,2.086769,2.345239,,,T,,Depression Marsh,Ephem,Summer 2021,50-75,Sweetgum,50-75,Red Bay,0-25,Red Maple,Patchy,"Sedges, Ferns",75-100,4.5,6,F,T,2,,,Savannah,Longleaf,0-25,0-25,None,75-100,Dog Fennel,T,T,,,2020
+11/12/2021,10:14,,stono,wetland,6,SP07,10,2.185159,2.001183,,,T,,Bottomland Swamp,Ephem,Summer 2021,75-100,Red Maple,0-25,Sawtooth Palmetto,25-50,,Edges,Sedges,75-100,6,10,F,T,2,,,Savannah,Longleaf,0-25,0-25,None,75-100,Phragmites,T,T,T,,2021
+11/12/2021,9:33,,stono,wetland,5,SP03,13,2.394814,2.469202,,,T,,Depression Marsh,Ephem,Summer 2021,75-100,Sweetgum,50-75,Common Sweetleaf,0-25,,Patchy,Sedges,75-100,4.5,12,F,T,3,,,Savannah,Longleaf,0-25,0-25,None,75-100,Little Blue Stem,T,T,,,2020
+11/12/2021,9:12,,stono,wetland,5,SP08,10,2.110573,2.322894,T,,T,,Depression Marsh,Ephem,Summer 2021,75-100,Sweetgum,75-100,Sweetgum,50-75,,Most of basin,Sedges,25-50,3,7,T,,,,,Savannah,Longleaf,0-25,0-25,None,75-100,Little Blue Stem,T,T,T,7,2021
+11/12/2021,8:45,,stono,wetland,5,SP02,11,2.319575,2.491505,,T,T,,Depression Marsh,Ephem,Summer 2021,0-25,Southern live oak,0-25,Bayberry,0-25,,Whole basin,Grasses,25-50,9.5,24,T,F,,Ditch,,Savannah,Longleaf,0-25,0-25,Longleaf,75-100,Dog Fennel,T,T,T,1,2021
+,,,stono,wetland,,SP11,,,2.413431,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,stono,wetland,,SP12,,,2.313154,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,stono,wetland,,SP13,,,2.446599,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,stono,wetland,,SP16,,,1.913548,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,halidon,upland,,UP01,,,2.038855,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,halidon,upland,,UP02,,,2.07449,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,halidon,upland,,UP03,,,2.08443,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,halidon,upland,,UP04,,,2.220025,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,stono,upland,,UP05,,,1.995743,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,stono,upland,,UP06,,,2.400691,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
