@@ -17,65 +17,90 @@ matrix that I can perform some statistics on afterward.
 ```{r}
 library(lattice)
 library(ggplot2)
+library(tidyr)
 library(dplyr)
+library(readr)
+library(mobr)
 library(vegan)
 # install.packages("dummies")
 library(dummies)
-
 
 dat <- read.csv("~/raw_data - bird_data_year1.csv")
 
 #missing HH34 with 3 replicates, SP03 has 4 replicates
 dat2 <- read.csv("~/raw_data - bird_data_year2.csv")
 
-#all the bird data togehter
+#all the bird data together
 
-dat_all <- read.csv("~/raw_data - all_bird_data.csv")
+dat_all <- read.csv("~/ephem_birds_data_analysis/wetland_birds/raw_data - all_bird_data.csv")
 
-# assuming each species only recorded once per point count then
-# species richness (sr) is just number of rows which function n() computes
-dat_sr <- dat %>%
-    group_by(date, site, site_type, block, wetland_id) %>%
-    summarise(sr = n())
+# env matrix
+bird_env <- read.csv("~/ephem_birds_data_analysis/wetland_birds/raw_data - veg_2022.csv")
 
-#second year data
 
-dat_sr <- dat2 %>%
-    group_by(date, site, site_type, block, wetland_id) %>%
-    summarise(sr = n())
+super_bird_matrix <- merge(dat_all, bird_env, by = 'wetland_id')
 
-# all data together
+# all data together, need to make super matrix, merge()
+# with env data, then separate out, individually 
+# env matrix, needs site, year, site_type, etc. 
 
-id3 <- with(dat_all, paste(wetland_id, year))
-comm3 <- with(dat_all, tapply(total, list(id3, species), function(x) sum(x)))
+id3 <- with(super_bird_matrix, paste(wetland_id, date, year))
+comm3 <- with(super_bird_matrix, tapply(total, list(id3, species), sum))
 comm3 <- ifelse(is.na(comm3), 0, comm3)
 
-# need to make a community matrix with species as columns, and point count sites
-# as rows
-# year 1
+# create columns for the group variables by splitting row names up
+comm3 <- data.frame(comm3)
 
-id <- with(dat, paste(wetland_id, year))
-comm <- with(dat, tapply(total, list(id, species), function(x) sum(x)))
-comm <- ifelse(is.na(comm), 0, comm)
+# comm3$wetland_id <- sapply(strsplit(row.names(comm3), ' '), function(x) x[1])
+# comm3$date <- sapply(strsplit(row.names(comm3), ' '), function(x) x[2])
+# comm3$year <- sapply(strsplit(row.names(comm3), ' '), function(x) x[3])
 
-#year 2
+env <- super_bird_matrix %>% select('wetland_id', 'block.y', 'date', 'year', 'spp', 'dbh', 'dist', 'site.y', 'site_type.x')
 
-id2 <- with(dat2, paste(wetland_id, year))
-comm2 <- with(dat2, tapply(total, list(id2, species), function(x) sum(x)))
-comm2 <- ifelse(is.na(comm2), 0, comm2)
 
-# creating "comm" as a data frame to perform statistics on (i.e. Shannon-Weiner Bio
-# Index)
-comm <- as.data.frame(comm)
-comm_2 <- as.data.frame(comm2)
-comm3 <- as.data.frame(comm3)
+##making the env matrix properly, with spp_richness as a column, with average dbh and dist
 
-#I need to ask Dan about that thing again to sum every 3 rows across all the columns 
-comm_3_actual <- cbind(comm_3_samp, comm_2)
-library(dplyr)
-actual_comm_matrix_2 <- comm_3_actual %>% group_by(comm_3_samp) %>% summarise_all(sum)
+env$site_type.x <- as.factor(env$site_type.x)
 
-matrix_summed_by_wetland <- actual_comm_matrix[,-1]
+nrow(distinct(env))
+summary(env$site_type.y)
+
+env_species_counts <- env %>% group_by(wetland_id, site.y, year, date, block.y) %>% summarise(
+  spp_counts = length(unique(spp)),
+  mean_dbh = mean(dbh, na.rm = T),
+  mean_dist = mean(dist, na.rm = T),
+  site_type = unique(as.character(site_type.x)))
+
+
+summary(env$site_type.y)
+
+## making the row names the same
+rownames(env_species_counts) <- rownames(comm3)
+
+## do some vegan analysis
+
+rda_tree <- rda(comm3 ~ as.factor(env_species_counts$year) + as.factor(env_species_counts$block.y) + as.factor(env_species_counts$site.y) + as.factor(env_species_counts$site_type) + env_species_counts$spp_counts + env_species_counts$mean_dbh + env_species_counts$mean_dist , data=env_species_counts)
+rda_tree
+
+RsquareAdj(rda_tree)
+
+plot(rda_tree, type='n', scaling=1)
+orditorp(rda_tree, display='sp', cex=0.5, scaling=1, col='blue')
+text(rda_tree, display='cn', col='red')
+
+
+anova(rda_tree, by='margin', permutations=1000)
+
+
+# making a mob with env and comm matrix
+
+bird_mob <- make_mob_in(comm3, env_species_counts)
+
+
+mob_test <- get_delta_stats(bird_mob, env_var = 'site_type', ref_level = 'upland',
+                            type = 'discrete', tests = c('SAD', 'N'), n_perm = 199)
+                                
+plot(mob_test)
 
 #bird year 2 data
 rownames(matrix_summed_by_wetland_2) <- c('HH01', 'HH02', 'HH04',
