@@ -1,0 +1,153 @@
+wetland_id,site,site_type,block,spp.number,spp,dist,dbh
+HH34,halidon,wetland,1,1,tupelo,2.05,22.8
+HH34,halidon,wetland,1,2,tupelo,3,28.2
+HH34,halidon,wetland,1,3,slash/loblolly,3.65,46.3
+HH34,halidon,wetland,1,4,tupelo,3.05,16.5
+UP01,halidon,upland,1,1,slash/loblolly,4.7,45
+UP01,halidon,upland,1,2,slash/loblolly,12.5,38.7
+UP01,halidon,upland,1,3,slash/loblolly,9.4,46
+UP01,halidon,upland,1,4,slash/loblolly,8.35,51.4
+HH13,halidon,wetland,1,1,sweet gum,2.65,21
+HH13,halidon,wetland,1,2,water oak,3.95,32.8
+HH13,halidon,wetland,1,3,red maple,2.85,10.2
+HH13,halidon,wetland,1,4,tupelo,3.75,27.2
+HH34r,halidon,wetland,1,1,slash/loblolly,5.7,50.8
+HH34r,halidon,wetland,1,2,slash/loblolly,7.5,50.5
+HH34r,halidon,wetland,1,3,slash/loblolly,8.85,51.4
+HH34r,halidon,wetland,1,4,sweet gum,9.15,31.5
+UP02,halidon,upland,2,1,slash/loblolly,2.4,46.5
+UP02,halidon,upland,2,2,slash/loblolly,9.4,42.5
+UP02,halidon,upland,2,3,slash/loblolly,9.7,37.5
+UP02,halidon,upland,2,4,slash/loblolly,11,41.5
+HH14,halidon,wetland,2,1,tupelo,1.2,24
+HH14,halidon,wetland,2,2,tupelo,1.35,21.8
+HH14,halidon,wetland,2,3,tupelo,5.5,24
+HH14,halidon,wetland,2,4,tupelo,6.55,29.5
+HH01,halidon,wetland,4,1,longleaf,15,31.8
+HH01,halidon,wetland,4,2,longleaf,23.1,23.5
+HH01,halidon,wetland,4,3,longleaf,23.8,17
+HH01,halidon,wetland,4,4,longleaf,36,31.2
+HH22,halidon,wetland,2,1,sweet gum,5.5,11.5
+HH22,halidon,wetland,2,2,tupelo,4.1,29.7
+HH22,halidon,wetland,2,3,tupelo,4.1,16
+HH22,halidon,wetland,2,4,sweet gum,1.2,10.8
+HH17,halidon,wetland,2,1,tupelo,1.25,23.5
+HH17,halidon,wetland,2,2,tupelo,1.7,23
+HH17,halidon,wetland,2,3,tupelo,2.85,15.2
+HH17,halidon,wetland,2,4,tupelo,3.4,18
+HH07,halidon,wetland,4,1,tupelo,0.9,15.5
+HH07,halidon,wetland,4,2,loblolly,3,48.3
+HH07,halidon,wetland,4,3,tupelo,2.25,12.5
+HH07,halidon,wetland,4,4,tupelo,3.1,11
+HH05,halidon,wetland,4,1,slash/loblolly,1.3,26.5
+HH05,halidon,wetland,4,2,slash/loblolly,3.8,22
+HH05,halidon,wetland,4,3,slash/loblolly,4,15
+HH05,halidon,wetland,4,4,slash/loblolly,4.8,16
+UP04,halidon,upland,4,1,longleaf,8.3,11
+UP04,halidon,upland,4,2,longleaf,9.4,14.5
+UP04,halidon,upland,4,3,longleaf,8,10
+UP04,halidon,upland,4,4,longleaf,0.85,11.8
+HH04,halidon,wetland,4,1,tupelo,1.4,30
+HH04,halidon,wetland,4,2,tupelo,2.1,22.5
+HH04,halidon,wetland,4,3,tupelo,3.1,14.5
+HH04,halidon,wetland,4,4,sweet gum,3.1,39
+HH33,halidon,wetland,1,1,tupelo,1.1,14.1
+HH33,halidon,wetland,1,2,tupelo,2.3,25
+HH33,halidon,wetland,1,3,tupelo,2.85,20
+HH33,halidon,wetland,1,4,tupelo,2.25,14.7
+HH02,halidon,wetland,4,1,sweet gum,1.9,38.2
+HH02,halidon,wetland,4,2,live oak,1.75,19.2
+HH02,halidon,wetland,4,3,tupelo,2.2,17.6
+HH02,halidon,wetland,4,4,tupelo,3.4,38.5
+UP03,halidon,upland,3,1,loblolly/slash,1.8,40.5
+UP03,halidon,upland,3,2,loblolly/slash,7.75,40
+UP03,halidon,upland,3,3,loblolly/slash,12.4,47
+UP03,halidon,upland,3,4,loblolly/slash,10.7,39.5
+HH50,halidon,wetland,3,1,loblolly/slash,1.9,37.7
+HH50,halidon,wetland,3,2,loblolly/slash,4.3,39.8
+HH50,halidon,wetland,3,3,sweet gum,6,20.1
+HH50,halidon,wetland,3,4,loblolly/slash,6.1,46
+HH31,halidon,wetland,7,1,loblolly/slash,2,30
+HH31,halidon,wetland,7,2,loblolly/slash,3.7,31
+HH31,halidon,wetland,7,3,loblolly/slash,5.5,12.2
+HH31,halidon,wetland,7,4,loblolly/slash,10.5,15
+HH49,halidon,wetland,3,1,tupelo,2,35.2
+HH49,halidon,wetland,3,2,sweet gum,2.85,46
+HH49,halidon,wetland,3,3,tupelo,3.15,32.8
+HH49,halidon,wetland,3,4,tupelo,4,29.5
+HH48,halidon,wetland,3,1,sweet gum,1.35,32.8
+HH48,halidon,wetland,3,2,sweet gum,7.7,34.5
+HH48,halidon,wetland,3,3,sweet gum,8.8,30.5
+HH48,halidon,wetland,3,4,sweet gum,11,26.5
+HH46,halidon,wetland,7,1,live oak,1.55,34
+HH46,halidon,wetland,7,2,live oak,4.8,34
+HH46,halidon,wetland,7,3,live oak,7.7,24.5
+HH46,halidon,wetland,7,4,live oak,9.4,27.5
+HH45,halidon,wetland,7,1,live oak,3.15,25
+HH45,halidon,wetland,7,2,live oak,3.5,25.5
+HH45,halidon,wetland,7,3,live oak,3.7,19
+HH45,halidon,wetland,7,4,live oak,3.7,28.5
+HH30,halidon,wetland,7,1,willow oak,2.85,43.5
+HH30,halidon,wetland,7,2,loblolly,9.35,24.2
+HH30,halidon,wetland,7,3,loblolly,8.25,41.5
+HH30,halidon,wetland,7,4,loblolly,11.85,28
+HH43,halidon,wetland,7,1,red maple,1.45,24.5
+HH43,halidon,wetland,7,2,red maple,2,12.5
+HH43,halidon,wetland,7,3,live oak,4.45,60.2
+HH43,halidon,wetland,7,4,red maple,4.7,34.5
+HH17,halidon,wetland,2,1,tupelo,1.35,23.7
+HH17,halidon,wetland,2,2,tupelo,1.4,22.7
+HH17,halidon,wetland,2,3,tupelo,2.45,15.4
+HH17,halidon,wetland,2,4,tupelo,3.1,18.5
+SP13,stono,wetland,6,1,tupelo,3.6,10
+SP13,stono,wetland,6,2,tupelo,3.7,13.5
+SP13,stono,wetland,6,3,tupelo,1.75,17.4
+SP13,stono,wetland,6,4,swamp oak,7.5,33
+SP05,stono,wetland,8,1,swamp oak,1.9,11
+SP05,stono,wetland,8,2,swamp oak,2,14
+SP05,stono,wetland,8,3,laurel oak,5.6,13.7
+SP05,stono,wetland,8,4,laurel oak,5.7,12.2
+SP11,stono,wetland,6,1,black tupelo,1.25,25.2
+SP11,stono,wetland,6,2,tulip poplar,4.7,22.7
+SP11,stono,wetland,6,3,loblolly,5.5,48
+SP11,stono,wetland,6,4,black tupelo,4.8,13
+SP12,stono,wetland,6,1,longleaf,14.9,14.5
+SP12,stono,wetland,6,2,longleaf,15.5,13
+SP12,stono,wetland,6,3,longleaf,16,12
+SP12,stono,wetland,6,4,longleaf,19.9,12.8
+SP07,stono,wetland,6,1,tupelo,1.8,42
+SP07,stono,wetland,6,2,tupelo,2.65,13.6
+SP07,stono,wetland,6,3,tupelo,2.7,38
+SP07,stono,wetland,6,4,tupelo,3.7,35.7
+UP06,stono,upland,6,1,longleaf,1.55,14
+UP06,stono,upland,6,2,longleaf,3.15,15.8
+UP06,stono,upland,6,3,longleaf,4.3,12.8
+UP06,stono,upland,6,4,longleaf,5.95,18.5
+SP01,stono,upland,6,1,sweet gum,2.15,26
+SP01,stono,wetland,6,2,loblolly,3.3,14.5
+SP01,stono,wetland,6,3,red maple,4.1,59
+SP01,stono,wetland,6,4,red maple,4.35,20.5
+SP16,stono,wetland,8,1,red maple,1.05,18.7
+SP16,stono,wetland,8,2,sweet gum,3.5,30.8
+SP16,stono,wetland,8,3,sweet gum,5.8,30
+SP16,stono,wetland,8,4,red maple,5.5,29.8
+SP08,stono,wetland,5,1,sweet gum,3.8,10
+SP08,stono,wetland,5,2,sweet gum,5.1,32.5
+SP08,stono,wetland,5,3,sweet gum,5.6,59
+SP08,stono,wetland,5,4,sweet gum,5,30.5
+SP09,stono,wetland,6,1,black oak,1.9,27.4
+SP09,stono,wetland,6,2,sweet gum,4.8,29.2
+SP09,stono,wetland,6,3,sweet gum,4.65,38.8
+SP09,stono,wetland,6,4,black oak,5.6,11.8
+SP03,stono,wetland,5,1,tupelo,2.6,33.5
+SP03,stono,wetland,5,2,tupelo,3.5,31.6
+SP03,stono,wetland,5,3,swamp oak,4.8,12.5
+SP03,stono,wetland,5,4,loblolly,4,16.1
+UP05,stono,upland,5,1,longleaf,2.95,10
+UP05,stono,upland,5,2,longleaf,3.75,11.2
+UP05,stono,upland,5,3,longleaf,4.25,12.5
+UP05,stono,upland,5,4,longleaf,7.2,15.5
+SP02,stono,wetland,5,1,live oak,10.4,32
+SP02,stono,wetland,5,2,live oak,13.3,28
+SP02,stono,wetland,5,3,longleaf,16,21
+SP02,stono,wetland,5,4,longleaf,15.9,13.7
