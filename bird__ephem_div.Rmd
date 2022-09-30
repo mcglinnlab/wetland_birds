@@ -137,6 +137,11 @@ env_matrix <- cbind(env_species_counts, bird_div_metrics_S$value, bird_div_metri
 names(env_matrix)[16] <- 'bird_div_S_a'
 names(env_matrix)[17] <- 'bird_div_S_PIE_a'
 
+#checking for normality, bird_div_S_a is good, but S_PIE needs
+# a log transformation
+
+hist(log(env_matrix$bird_div_S_PIE_a))
+
 # making NAs into 0s
 env_matrix[is.na(env_matrix)] <- 0
 
@@ -149,7 +154,9 @@ summary(aov(bird_div_S_a ~ year + block.y + mean_dbh + mean_dist + site_type + c
 
 # creating the same model with JUST wetlands
 
-canopy_model <- aov(bird_div_S_a ~ canopy_cover * canopy_dom, data = env_matrix_wet)
+canopy_model <- aov(log(bird_div_S_PIE_a) ~ canopy_cover * canopy_dom, data = env_matrix_wet)
+
+summary(canopy_model)
 
 TukeyHSD(canopy_model)
 
