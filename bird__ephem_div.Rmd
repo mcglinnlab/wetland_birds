@@ -22,40 +22,49 @@ library(dplyr)
 library(readr)
 library(mobr)
 library(vegan)
-# install.packages("dummies")
-library(dummies)
-
-dat <- read.csv("~/raw_data - bird_data_year1.csv")
-
-#missing HH34 with 3 replicates, SP03 has 4 replicates
-dat2 <- read.csv("~/raw_data - bird_data_year2.csv")
+library(devtools)
+install.packages("devtools")
+install.packages("devtools.zip", repos = NULL)
+library(remotes)
+?devtools
 
 #all the bird data together
 
-dat_all <- read.csv("~/ephem_birds_data_analysis/wetland_birds/raw_data - all_bird_data.csv")
+dat_all <- read.csv("raw_data - all_bird_data.csv")
 
 # env matrix
-bird_env <- read.csv("~/ephem_birds_data_analysis/wetland_birds/raw_data - veg_2022.csv")
+bird_env <- read.csv("raw_data - veg_2022.csv")
 
+# wetland assessment env matrix
+
+bird_wet_env <- read.csv("raw_data - just_wet_attribute.csv")
+
+# renaming the env dataframe for uniola database
 
 super_bird_matrix <- merge(dat_all, bird_env, by = 'wetland_id')
+
+super_bird_matrix_wet <- merge(super_bird_matrix, bird_wet_env, by = 'wetland_id')
+
 
 # all data together, need to make super matrix, merge()
 # with env data, then separate out, individually 
 # env matrix, needs site, year, site_type, etc. 
 
 id3 <- with(super_bird_matrix, paste(wetland_id, date, year))
-comm3 <- with(super_bird_matrix, tapply(total, list(id3, species), sum))
+comm3 <- with(super_bird_matrix_wet, tapply(total, list(id3, species), sum))
 comm3 <- ifelse(is.na(comm3), 0, comm3)
 
 # create columns for the group variables by splitting row names up
 comm3 <- data.frame(comm3)
 
+#I need to fi this in above code, for some reason it summed 4x ??
+comm4 <- comm3/4
+
 # comm3$wetland_id <- sapply(strsplit(row.names(comm3), ' '), function(x) x[1])
 # comm3$date <- sapply(strsplit(row.names(comm3), ' '), function(x) x[2])
 # comm3$year <- sapply(strsplit(row.names(comm3), ' '), function(x) x[3])
 
-env <- super_bird_matrix %>% select('wetland_id', 'block.y', 'date', 'year', 'spp', 'dbh', 'dist', 'site.y', 'site_type.x')
+env <- super_bird_matrix_wet %>% select('wetland_id', 'block.y', 'date.x', 'year', 'spp', 'dbh', 'dist', 'site.y', 'site_type.x', 'canopy_cover', 'canopy_dom', 'midstory_cover', 'midstory_dom', 'groundcover', 'dom_herb_group')
 
 
 ##making the env matrix properly, with spp_richness as a column, with average dbh and dist
@@ -65,7 +74,7 @@ env$site_type.x <- as.factor(env$site_type.x)
 nrow(distinct(env))
 summary(env$site_type.y)
 
-env_species_counts <- env %>% group_by(wetland_id, site.y, year, date, block.y) %>% summarise(
+env_species_counts <- env %>% group_by(wetland_id, site.y, year, date.x, block.y, canopy_cover, canopy_dom, midstory_cover, midstory_dom, groundcover, dom_herb_group) %>% summarise(
   spp_counts = length(unique(spp)),
   mean_dbh = mean(dbh, na.rm = T),
   mean_dist = mean(dist, na.rm = T),
@@ -75,11 +84,11 @@ env_species_counts <- env %>% group_by(wetland_id, site.y, year, date, block.y) 
 summary(env$site_type.y)
 
 ## making the row names the same
-rownames(env_species_counts) <- rownames(comm3)
+rownames(env_species_counts) <- rownames(comm4)
 
 ## do some vegan analysis
 
-rda_tree <- rda(comm3 ~ as.factor(env_species_counts$year) + as.factor(env_species_counts$block.y) + as.factor(env_species_counts$site.y) + as.factor(env_species_counts$site_type) + env_species_counts$spp_counts + env_species_counts$mean_dbh + env_species_counts$mean_dist , data=env_species_counts)
+rda_tree <- rda(comm4 ~ as.factor(env_species_counts$year) + as.factor(env_species_counts$block.y) + as.factor(env_species_counts$site.y) + as.factor(env_species_counts$site_type) + env_species_counts$spp_counts + env_species_counts$mean_dbh + env_species_counts$canopy_cover , data=env_species_counts)
 rda_tree
 
 RsquareAdj(rda_tree)
@@ -101,100 +110,70 @@ mob_test <- get_delta_stats(bird_mob, env_var = 'site_type', ref_level = 'upland
                             type = 'discrete', tests = c('SAD', 'N'), n_perm = 199)
                                 
 plot(mob_test)
+# making the alpha, beta, gamme plots, these are now obsolete
+# they don't work
 
-#bird year 2 data
-rownames(matrix_summed_by_wetland_2) <- c('HH01', 'HH02', 'HH04',
-                                  'HH05', 'HH07', 'HH13', 'HH14',
-                         'HH17', 'HH22', 'HH30', 'HH31',
-                         'HH33', 'HH34', 'HH34r', 'HH43', 'HH45',
-                         'HH46', 
-                         'HH48', 
-                         'HH49', 'HH50', 
-                         'SP01', 'SP02', 'SP03', 
-                         'SP05', 'SP07', 'SP08', 'SP09', 
-                         'SP11', 'SP12', 'SP13', 'SP16', 
-                         'UP01',
-                         'UP02', 'UP03', 
-                         'UP04', 'UP05', 'UP06')
-
-#bird year 1 data
-rownames(matrix_summed_by_wetland) <- c('HH02', 'HH04', 'HH07', 'HH13', 'HH14',
-                         'HH17', 'HH22', 'HH33', 'HH34', 'HH48', 
-                         'HH49', 'HH50', 'SP01', 'SP02', 'SP03', 
-                         'SP05', 'SP07', 'SP08', 'SP09', 'UP01',
-                         'UP02', 'UP03', 'UP04', 'UP05', 'UP06')
+# bird_stats <- get_mob_stats(bird_mob, group_var = "site_type", ref_level = 'upland', n_perm = 199)
 
 
-shan_comm <- diversity(matrix_summed_by_wetland, index = "shannon")
-shan_comm
+plot(bird_stats, 'S')
+plot(bird_stats, 'N')
+plot(bird_stats, 'S_n')
+plot(bird_stats, 'S_PIE')
 
-shan_comm_2 <- diversity(matrix_summed_by_wetland, index = "shannon")
-shan_comm_2
+# trying to calculate alpha diversity and beta diversity to export
 
-#SP03 has 4 samples, need to get rid of one of those
-#bird year 2 data
-comm_3_samp <- c('HH01', 'HH01', 'HH01', 
-                 'HH02','HH02', 'HH02', 
-                 'HH04', 'HH04', 'HH04', 
-                 'HH05', 'HH05', 'HH05', 
-                  'HH07', 'HH07', 'HH07', 
-                 'HH13', 'HH13', 'HH13',
-                'HH14', 'HH14', 'HH14', 
-                 'HH17', 'HH17','HH17',
-                 'HH22', 'HH22', 'HH22', 
-                'HH30', 'HH30', 'HH30', 
-                'HH31', 'HH31', 'HH31',
-                'HH33', 'HH33', 'HH33', 
-                'HH34', 'HH34', 
-                'HH34r', 'HH34r', 'HH34r', 
-                'HH43', 'HH43', 'HH43',
-                 'HH45', 'HH45', 'HH45', 
-                'HH46', 'HH46', 'HH46',
-                'HH48', 'HH48', 'HH48', 
-                'HH49', 'HH49', 'HH49', 
-                'HH50', 'HH50', 'HH50', 
-                'SP01', 'SP01', 'SP01',
-                'SP02', 'SP02', 'SP02', 
-                'SP03', 'SP03', 'SP03', 'SP03', 
-                'SP05','SP05', 'SP05', 
-                'SP07', 'SP07', 'SP07', 
-                'SP08', 'SP08','SP08', 
-                'SP09','SP09', 'SP09',
-                 'SP11', 'SP11', 'SP11', 
-                 'SP12', 'SP12', 'SP12',
-                 'SP13', 'SP13', 'SP13',
-                 'SP16', 'SP16', 'SP16',
-                 'UP01', 'UP01', 'UP01',
-                  'UP02','UP02', 'UP02', 
-                'UP03', 'UP03', 'UP03', 
-                'UP04', 'UP04', 'UP04', 
-                'UP05','UP05', 'UP05',  
-                'UP06', 'UP06','UP06')
+bird_div_metrics_S <- calc_comm_div(comm4, 'S', scales = c("alpha"))
 
+bird_div_metrics_S_PIE <- calc_comm_div(comm4, 'S_PIE', scales = c("alpha"))
 
+rownames(bird_div_metrics_S) <- rownames(comm4)
+rownames(bird_div_metrics_S_PIE) <- rownames(comm4) 
 
-#bird year 1 data
-comm_2_samp <- c('HH02','HH02', 'HH02', 'HH04', 'HH04', 'HH04',
-                              'HH07', 'HH07', 'HH07', 'HH13', 'HH13', 'HH13',
-                              'HH14', 'HH14', 'HH14', 'HH17', 'HH17',
-                         'HH17', 'HH22', 'HH22', 'HH22',
-                         'HH33', 'HH33', 'HH33', 'HH34', 'HH34', 'HH34', 
-                         'HH48', 'HH48', 'HH48', 'HH49', 'HH49', 
-                         'HH49', 'HH50', 'HH50', 'HH50', 'SP01', 'SP01', 'SP01',
-                         'SP02', 'SP02', 'SP02', 'SP03', 'SP03', 'SP03', 'SP05',
-                         'SP05', 'SP05', 'SP07', 'SP07', 'SP07', 'SP08', 'SP08',
-                         'SP08', 'SP09','SP09', 'SP09', 'UP01', 'UP01', 'UP01',
-                         'UP02','UP02', 'UP02', 'UP03', 'UP03', 'UP03', 'UP04', 
-                         'UP04', 'UP04', 'UP05','UP05', 'UP05',  'UP06', 'UP06',
-                         'UP06')
+# try to merge these statistics with my env dataframe, 
+# to do some regression modelling
+
+env_matrix <- cbind(env_species_counts, bird_div_metrics_S$value, bird_div_metrics_S_PIE$value)
+names(env_matrix)[16] <- 'bird_div_S_a'
+names(env_matrix)[17] <- 'bird_div_S_PIE_a'
+
+# making NAs into 0s
+env_matrix[is.na(env_matrix)] <- 0
+
+# need to subset to just get wetlands for some analysis
+
+env_matrix_wet <- subset(env_matrix, site_type == 'wetland')
+
+# it doesn't seem that vegetation dbh or dist means, are revealing any signal
+summary(aov(bird_div_S_a ~ year + block.y + mean_dbh + mean_dist + site_type + canopy_cover + midstory_cover, data = env_matrix))
+
+# creating the same model with JUST wetlands
+
+canopy_model <- aov(bird_div_S_a ~ canopy_cover * canopy_dom, data = env_matrix_wet)
+
+TukeyHSD(canopy_model)
+
+# playing with some plots
+
+ggplot(data = env_matrix, mapping = aes(mean_dist, bird_div_S_PIE_a), colour = site_type) + geom_point() + geom_smooth(method = lm)
+
+#plot between wetland v upland
+ggplot(data = env_matrix, mapping = aes(site_type, bird_div_S_a), color = site_type) + geom_boxplot() + theme_bw()
+
+# plot between stono v halidon
+ggplot(data = env_matrix, mapping = aes(site.y, bird_div_S_a), color = site.y) + geom_boxplot() + theme_bw()
+
+#plot of canopy cover classes 
+ggplot(data = env_matrix_wet, mapping = aes(canopy_cover, bird_div_S_a), color = canopy_cover) + geom_boxplot() + theme_bw()
 
 
+#plot of groundcover classes
+ggplot(data = env_matrix_wet, mapping = aes(groundcover, bird_div_S_a)) + geom_boxplot() + theme_bw()
 
+#plot of canopy dominant trees
+ggplot(data = env_matrix_wet, mapping = aes(canopy_dom, bird_div_S_a)) + geom_boxplot() + theme_bw()
 ```
-```{r}
-dat <- read.csv("~/raw_bird_data.csv")
 
-```
 
 Now that I created a community matrix, and actually found the Shannon-Weiner
 Biodiversity Index for each wetland, it was easier to manually plug them into a different
