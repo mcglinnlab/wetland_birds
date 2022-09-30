@@ -88,7 +88,7 @@ rownames(env_species_counts) <- rownames(comm4)
 
 ## do some vegan analysis
 
-rda_tree <- rda(comm4 ~ as.factor(env_species_counts$year) + as.factor(env_species_counts$block.y) + as.factor(env_species_counts$site.y) + as.factor(env_species_counts$site_type) + env_species_counts$spp_counts + env_species_counts$mean_dbh + env_species_counts$canopy_cover , data=env_species_counts)
+rda_tree <- rda(comm4 ~ env_species_counts$spp_counts + env_species_counts$mean_dbh + env_species_counts$canopy_cover , data=env_species_counts)
 rda_tree
 
 RsquareAdj(rda_tree)
@@ -149,12 +149,28 @@ env_matrix[is.na(env_matrix)] <- 0
 
 env_matrix_wet <- subset(env_matrix, site_type == 'wetland')
 
-# it doesn't seem that vegetation dbh or dist means, are revealing any signal
-summary(aov(bird_div_S_a ~ year + block.y + mean_dbh + mean_dist + site_type + canopy_cover + midstory_cover, data = env_matrix))
+# sub-setting the JUST wetlands by site, to compare within site variation
+
+env_matrix_halidon <- subset(env_matrix_wet, site.y == 'halidon')
+
+# sub-setting the JUST wetlands by site, to compare within site variation
+
+env_matrix_stono <- subset(env_matrix_wet, site.y == 'stono')
+
+
+# Model that comparies bird div between site and site type
+summary(aov(bird_div_S_a ~ site_type + site.y + canopy_cover, data = env_matrix))
+
+
+#plot between wetland v upland
+ggplot(data = env_matrix, mapping = aes(site_type, bird_div_S_a), color = site_type) + geom_boxplot() + theme_bw()
+
+# plot between stono v halidon
+ggplot(data = env_matrix, mapping = aes(site.y, bird_div_S_a), color = site.y) + geom_boxplot() + theme_bw()
 
 # creating the same model with JUST wetlands
 
-canopy_model <- aov(log(bird_div_S_PIE_a) ~ canopy_cover * canopy_dom, data = env_matrix_wet)
+canopy_model <- aov(bird_div_S_a ~ mean_dbh + mean_dist + canopy_cover + canopy_dom + groundcover, data = env_matrix_wet)
 
 summary(canopy_model)
 
@@ -162,13 +178,8 @@ TukeyHSD(canopy_model)
 
 # playing with some plots
 
-ggplot(data = env_matrix, mapping = aes(mean_dist, bird_div_S_PIE_a), colour = site_type) + geom_point() + geom_smooth(method = lm)
+ggplot(data = env_matrix_wet, mapping = aes(mean_dist, bird_div_S_a), colour = site_type) + geom_point() + geom_smooth(method = lm)
 
-#plot between wetland v upland
-ggplot(data = env_matrix, mapping = aes(site_type, bird_div_S_a), color = site_type) + geom_boxplot() + theme_bw()
-
-# plot between stono v halidon
-ggplot(data = env_matrix, mapping = aes(site.y, bird_div_S_a), color = site.y) + geom_boxplot() + theme_bw()
 
 #plot of canopy cover classes 
 ggplot(data = env_matrix_wet, mapping = aes(canopy_cover, bird_div_S_a), color = canopy_cover) + geom_boxplot() + theme_bw()
@@ -178,7 +189,19 @@ ggplot(data = env_matrix_wet, mapping = aes(canopy_cover, bird_div_S_a), color =
 ggplot(data = env_matrix_wet, mapping = aes(groundcover, bird_div_S_a)) + geom_boxplot() + theme_bw()
 
 #plot of canopy dominant trees
-ggplot(data = env_matrix_wet, mapping = aes(canopy_dom, bird_div_S_a)) + geom_boxplot() + theme_bw()
+ggplot(data = env_matrix_wet, mapping = aes(canopy_dom, bird_div_S_a)) + geom_boxplot() + scale_x_discrete(guide = guide_axis(n.dodge = 3)) + theme_bw()
+
+
+#creating JUST wet models within site (halidon, and stono separate)
+summary(aov(bird_div_S_a ~ canopy_cover + canopy_dom + groundcover, data = env_matrix_halidon))
+
+#plot of canopy cover classes 
+ggplot(data = env_matrix_halidon, mapping = aes(canopy_cover, bird_div_S_a), color = canopy_cover) + geom_boxplot() + theme_bw()
+
+#creating an lm model to test our vegetation survey variables against bird div
+summary(lm(bird_div_S_a ~ mean_dbh + mean_dist, data = env_matrix_halidon))
+
+summary(aov(bird_div_S_a ~ canopy_cover + canopy_dom + groundcover, data = env_matrix_stono))
 ```
 
 
