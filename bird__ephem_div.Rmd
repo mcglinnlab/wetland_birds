@@ -64,7 +64,7 @@ comm4 <- comm3/4
 # comm3$date <- sapply(strsplit(row.names(comm3), ' '), function(x) x[2])
 # comm3$year <- sapply(strsplit(row.names(comm3), ' '), function(x) x[3])
 
-env <- super_bird_matrix_wet %>% select('wetland_id', 'block.y', 'date.x', 'year', 'spp', 'dbh', 'dist', 'site.y', 'site_type.x', 'canopy_cover', 'canopy_dom', 'midstory_cover', 'midstory_dom', 'groundcover', 'dom_herb_group')
+env <- super_bird_matrix_wet %>% select('wetland_id', 'block.y', 'date.x', 'year', 'spp', 'dbh', 'dist', 'site.y', 'site_type.x', 'canopy_cover', 'canopy_dom', 'midstory_cover', 'midstory_dom', 'groundcover', 'dom_herb_group', 'wet_area', 'wet_perimeter')
 
 
 ##making the env matrix properly, with spp_richness as a column, with average dbh and dist
@@ -74,7 +74,7 @@ env$site_type.x <- as.factor(env$site_type.x)
 nrow(distinct(env))
 summary(env$site_type.y)
 
-env_species_counts <- env %>% group_by(wetland_id, site.y, year, date.x, block.y, canopy_cover, canopy_dom, midstory_cover, midstory_dom, groundcover, dom_herb_group) %>% summarise(
+env_species_counts <- env %>% group_by(wetland_id, site.y, year, date.x, block.y, canopy_cover, canopy_dom, midstory_cover, midstory_dom, groundcover, dom_herb_group, wet_area, wet_perimeter) %>% summarise(
   spp_counts = length(unique(spp)),
   mean_dbh = mean(dbh, na.rm = T),
   mean_dist = mean(dist, na.rm = T),
@@ -88,7 +88,7 @@ rownames(env_species_counts) <- rownames(comm4)
 
 ## do some vegan analysis
 
-rda_tree <- rda(comm4 ~ env_species_counts$spp_counts + env_species_counts$mean_dbh + env_species_counts$canopy_cover , data=env_species_counts)
+rda_tree <- rda(comm4 ~ env_species_counts$spp_counts + env_species_counts$mean_dbh + env_species_counts$canopy_cover + env_species_counts$canopy_dom, data=env_species_counts)
 rda_tree
 
 RsquareAdj(rda_tree)
@@ -103,7 +103,7 @@ anova(rda_tree, by='margin', permutations=1000)
 
 # making a mob with env and comm matrix
 
-bird_mob <- make_mob_in(comm3, env_species_counts)
+bird_mob <- make_mob_in(comm4, env_species_counts)
 
 
 mob_test <- get_delta_stats(bird_mob, env_var = 'site_type', ref_level = 'upland',
@@ -122,25 +122,38 @@ plot(bird_stats, 'S_n')
 plot(bird_stats, 'S_PIE')
 
 # trying to calculate alpha diversity and beta diversity to export
-
+?mobr
 bird_div_metrics_S <- calc_comm_div(comm4, 'S', scales = c("alpha"))
 
 bird_div_metrics_S_PIE <- calc_comm_div(comm4, 'S_PIE', scales = c("alpha"))
 
+bird_div_metrics_S_b <- calc_comm_div(comm4, 'S', scales = c("beta"))
+
+bird_div_metrics_S_PIE_b <- calc_comm_div(comm4, 'S_PIE', scales = c("beta"))
+ 
+bird_div_metrics_S_g <- calc_comm_div(comm4, 'S', scales = c("gamma"))
+
 rownames(bird_div_metrics_S) <- rownames(comm4)
 rownames(bird_div_metrics_S_PIE) <- rownames(comm4) 
+rownames(bird_div_metrics_S_b) <- rownames(comm4)
+rownames(bird_div_metrics_S_PIE_b) <- rownames(comm4) 
 
 # try to merge these statistics with my env dataframe, 
 # to do some regression modelling
 
 env_matrix <- cbind(env_species_counts, bird_div_metrics_S$value, bird_div_metrics_S_PIE$value)
-names(env_matrix)[16] <- 'bird_div_S_a'
-names(env_matrix)[17] <- 'bird_div_S_PIE_a'
+names(env_matrix)[18] <- 'bird_div_S_a'
+names(env_matrix)[19] <- 'bird_div_S_PIE_a'
 
 #checking for normality, bird_div_S_a is good, but S_PIE needs
 # a log transformation
 
-hist(log(env_matrix$bird_div_S_PIE_a))
+hist(env_matrix$bird_div_S_a)
+
+hist(env_matrix_wet$wet_area)
+
+shapiro.test(env_matrix_wet$wet_area)
+qqplot(canopy_model$residuals, canopy_model$fitted.values)
 
 # making NAs into 0s
 env_matrix[is.na(env_matrix)] <- 0
@@ -168,18 +181,28 @@ ggplot(data = env_matrix, mapping = aes(site_type, bird_div_S_a), color = site_t
 # plot between stono v halidon
 ggplot(data = env_matrix, mapping = aes(site.y, bird_div_S_a), color = site.y) + geom_boxplot() + theme_bw()
 
-# creating the same model with JUST wetlands
-
-canopy_model <- aov(bird_div_S_a ~ mean_dbh + mean_dist + canopy_cover + canopy_dom + groundcover, data = env_matrix_wet)
+# creating the same model with JUST wetlands for alpha S
+?lm
+canopy_model <- lm(bird_div_S_a ~ canopy_cover + spp_counts + wet_area, data = env_matrix_wet)
 
 summary(canopy_model)
 
 TukeyHSD(canopy_model)
 
+# creating the same model with just wetlands for S PIE alpha
+
+canopy_model_PIE <- lm(bird_div_S_PIE_a ~ mean_dbh + mean_dist + canopy_cover + canopy_dom + groundcover + spp_counts, data = env_matrix_wet)
+
+summary(canopy_model_PIE)
+
+
 # playing with some plots
 
 ggplot(data = env_matrix_wet, mapping = aes(mean_dist, bird_div_S_a), colour = site_type) + geom_point() + geom_smooth(method = lm)
 
+# plot of wet area ~ diversity, strong correlation
+
+ggplot(data = env_matrix_wet, mapping = aes(wet_area, bird_div_S_a), colour = site_type) + geom_point() + geom_smooth(method = lm)
 
 #plot of canopy cover classes 
 ggplot(data = env_matrix_wet, mapping = aes(canopy_cover, bird_div_S_a), color = canopy_cover) + geom_boxplot() + theme_bw()
@@ -188,9 +211,12 @@ ggplot(data = env_matrix_wet, mapping = aes(canopy_cover, bird_div_S_a), color =
 #plot of groundcover classes
 ggplot(data = env_matrix_wet, mapping = aes(groundcover, bird_div_S_a)) + geom_boxplot() + theme_bw()
 
-#plot of canopy dominant trees
+#plot of canopy dominant trees S alpha
 ggplot(data = env_matrix_wet, mapping = aes(canopy_dom, bird_div_S_a)) + geom_boxplot() + scale_x_discrete(guide = guide_axis(n.dodge = 3)) + theme_bw()
 
+
+#plot of canopy dominant trees S PIE alpha
+ggplot(data = env_matrix_wet, mapping = aes(canopy_dom, bird_div_S_PIE_a)) + geom_boxplot() + scale_x_discrete(guide = guide_axis(n.dodge = 3)) + theme_bw()
 
 #creating JUST wet models within site (halidon, and stono separate)
 summary(aov(bird_div_S_a ~ canopy_cover + canopy_dom + groundcover, data = env_matrix_halidon))
@@ -204,6 +230,15 @@ summary(lm(bird_div_S_a ~ mean_dbh + mean_dist, data = env_matrix_halidon))
 summary(aov(bird_div_S_a ~ canopy_cover + canopy_dom + groundcover, data = env_matrix_stono))
 ```
 
+```{r}
+#making the kml file into a shape file
+install.packages("sf")
+library(sf)
+samples <- st_read("ephem_bird_LiDAR_newsites2022.kml")
+# need to drop 3rd dimension
+samples2 <- st_zm(samples, drop=T, what='ZM')
+st_write(samples2, "ephem_bird_LiDAR_poly_newsites2022_shape.shp")
+```
 
 Now that I created a community matrix, and actually found the Shannon-Weiner
 Biodiversity Index for each wetland, it was easier to manually plug them into a different
@@ -369,6 +404,16 @@ hist(filter_ground(nlas)$Z, breaks = seq(-0.6, 0.6, 0.01), main = "", xlab = "El
 #
 #
 #trying to clip and subset based on plot locations
+coords <- data.frame(x = rnorm(100, 0, 1), y = rnorm(100, 0,1))
+i=1
+#for (i in 1:nrow(coords)) {
+  circle_clip <- clip_circle(las_segmented_trees,
+                             x =  coords$x[i],
+                             y = coords$y[i], radius = 25)
+  # extract canopy variables
+  
+  
+#}
 
 UP05 <- clip_circle(las_segmented_trees, x =  575908.12, y = 3622341.77, radius = 25)
 
