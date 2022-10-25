@@ -22,9 +22,9 @@ library(dplyr)
 library(readr)
 library(mobr)
 library(vegan)
-library(devtools)
-install.packages("devtools")
-install.packages("devtools.zip", repos = NULL)
+# library(devtools)
+# install.packages("devtools")
+# install.packages("devtools.zip", repos = NULL)
 library(remotes)
 ?devtools
 
@@ -145,6 +145,29 @@ env_matrix <- cbind(env_species_counts, bird_div_metrics_S$value, bird_div_metri
 names(env_matrix)[18] <- 'bird_div_S_a'
 names(env_matrix)[19] <- 'bird_div_S_PIE_a'
 
+# trying the gamma diversity extraction by wetland and date
+gamma_S <- data.frame(comm4) %>%
+  group_by(env_matrix$wetland_id, env_matrix$date.x) %>%
+  group_map(~ calc_comm_div(.x, index = c('S'), 
+  scales = c("gamma"))) %>%
+  bind_rows(.id = 'wetland_id')
+
+gamma_S_PIE <- data.frame(comm4) %>%
+  group_by(env_matrix$wetland_id, env_matrix$date.x) %>%
+  group_map(~ calc_comm_div(.x, index = c('S_PIE'), 
+  scales = c("gamma"))) %>%
+  bind_rows(.id = 'wetland_id')
+
+#chaninging rownames to match the community matrix
+rownames(gamma_S) <- rownames(comm4)
+rownames(gamma_S_PIE) <- rownames(comm4)
+
+#binding the values to the env matrix
+env_matrix <- cbind(env_matrix, gamma_S$value, gamma_S_PIE$value)
+names(env_matrix)[20] <- 'bird_div_gamma_S'
+names(env_matrix)[21] <- 'bird_div_gamma_S_PIE'
+
+
 #checking for normality, bird_div_S_a is good, but S_PIE needs
 # a log transformation
 
@@ -195,14 +218,28 @@ canopy_model_PIE <- lm(bird_div_S_PIE_a ~ mean_dbh + mean_dist + canopy_cover + 
 
 summary(canopy_model_PIE)
 
+# creating the same model with just wetlands for gamma S
+
+canopy_model_gamma_S <- lm(bird_div_gamma_S ~ canopy_cover + spp_counts + wet_area, data = env_matrix_wet)
+
+summary(canopy_model_gamma_S)
+
+# creating the same model with just wetlands for gamma S_PIE
+canopy_model_gamma_S_PIE <- lm(bird_div_gamma_S_PIE ~ canopy_cover + spp_counts + wet_area, data = env_matrix_wet)
+
+summary(canopy_model_gamma_S_PIE)
 
 # playing with some plots
 
 ggplot(data = env_matrix_wet, mapping = aes(mean_dist, bird_div_S_a), colour = site_type) + geom_point() + geom_smooth(method = lm)
 
-# plot of wet area ~ diversity, strong correlation
+# plot of wet area ~ S alpha, strong correlation
 
 ggplot(data = env_matrix_wet, mapping = aes(wet_area, bird_div_S_a), colour = site_type) + geom_point() + geom_smooth(method = lm)
+
+#plot of wet area ~ gamma S
+
+ggplot(data = env_matrix_wet, mapping = aes(wet_area, bird_div_gamma_S), colour = site_type) + geom_point() + geom_smooth(method = lm)
 
 #plot of canopy cover classes 
 ggplot(data = env_matrix_wet, mapping = aes(canopy_cover, bird_div_S_a), color = canopy_cover) + geom_boxplot() + theme_bw()
@@ -309,10 +346,15 @@ ggplot(data = wet_attribute_only,
 
 ```{r}
 # Working on the LiDAR data to create similar diversity ~ canopy cover models
+# install.packages("lidR")
+# install.packages("terra")
+# install.packages("rgdal")
 library(lidR)
 library(sp)
-
-las <- readLAS('./merged_Stono_all_returns_clipped.las', select='xyzcr' )
+library(terra)
+library(rgdal)
+las <- readLAS("Stono_Preserve_all_returns.las", select='xyzcr' )
+wetland_coords <- read.csv("raw_data - wetland_coords.csv")
 
 ## coordinate change to utm for Stono
 coords_ll <- las@data[ , c('X', 'Y')]
@@ -339,55 +381,6 @@ las_5 <- subset(las)
 
 # las <- readLAS('./USGS_LPC_SC_SavannahPeeDee_2019_B19_10493971.laz')
 
-plot(las)
-
-chm <- rasterize_canopy(las, 2, p2r())
-col <- random.colors(50)
-plot(chm, col = col)
-
-plot(las, color = "ScanAngleRank", bg = "white", axis = TRUE, legend = TRUE)
-
-plot(las, color ="RGB")
-plot(las, color = "Intensity", breaks = "quantile", bg = "white")
-
-x <- plot(las, bg = "white", size = 3)
-add_dtm3d(x, dtm)
-
-x <- plot(las, bg = "white", size = 3)
-add_treetops3d(x, ttops)
-
-gnd <- filter_ground(las)
-plot(gnd, size = 3, bg = "white", color = "Classification")
-
-
-dtm <- rasterize_terrain(las, 1, knnidw())
-plot(dtm, col = gray(1:50/50))
-
-nlas <- las - dtm
-plot(nlas, size = 4, bg = "white")
-hist(filter_ground(nlas)$Z, main = "", xlab = "Elevation")
-hist(nlas$Z)
-
-
-#smaller ws argument means smaller area to compute local maxima
-ttops <- locate_trees(las, lmf(ws = 5))
-ttops
-
-plot(chm, col = height.colors(50))
-plot(sf::st_geometry(ttops), add = TRUE, pch = 3)
-
-x <- plot(las, bg = "white", size = 4)
-add_treetops3d(x, ttops)
-
-#larger ws argument = bigger area to compute local maxima
-ttops_11m <- locate_trees(las, lmf(ws = 11))
-plot(sf::st_geometry(ttops_11m), add = TRUE, pch = 3)
-
-
-plot(chm, col = height.colors(50))
-plot(las)
-
-plot(sf::st_geometry(ttops), pch = 3)
 
 # normalizig height by creating a dtm, seems like maybe we don't have to do this
 dtm <- rasterize_terrain(las, 1, knnidw())
@@ -399,21 +392,35 @@ plot(nlas, size = 4, bg = "white")
 # checking to see if we actually normalized the height
 hist(filter_ground(nlas)$Z, breaks = seq(-0.6, 0.6, 0.01), main = "", xlab = "Elevation")
 
+# trying to segment trees
+?segment_trees
+las_segmented_trees <- segment_trees(nlas, li2012(R = 3, speed_up = 5))
+
+plot(las_segmented_trees, color = "treeID")
+
 #
 #
 #
 #
 #trying to clip and subset based on plot locations
-coords <- data.frame(x = rnorm(100, 0, 1), y = rnorm(100, 0,1))
+# coords <- data.frame(x = rnorm(100, 0, 1), y = rnorm(100, 0,1))
 i=1
-#for (i in 1:nrow(coords)) {
+for (i in 1:nrow(wetland_coords)) {
   circle_clip <- clip_circle(las_segmented_trees,
-                             x =  coords$x[i],
-                             y = coords$y[i], radius = 25)
+                             x =  wetland_coords$utm_easting[i],
+                             y = wetland_coords$utm_northing[i],
+                             radius = 25)
   # extract canopy variables
   
+  print(circle_clip)
+}
+
+for (i in 1:nrow(circle_clip)) {
+  mean_tree <- 
+    cloud_metrics(circle_clip[i], func = ~mean(Z))
   
-#}
+  print(mean_tree)
+}
 
 UP05 <- clip_circle(las_segmented_trees, x =  575908.12, y = 3622341.77, radius = 25)
 
@@ -470,11 +477,7 @@ cloud_metrics(las, func = ~mean(Z))
 metrics <- cloud_metrics(las, func = .stdmetrics_z)
 str(head(metrics)) # output is a list
 
-# trying to segment trees
-?segment_trees
-las_segmented_trees <- segment_trees(nlas, li2012(R = 3, speed_up = 5))
 
-plot(las_segmented_trees, color = "treeID")
 
 #choosing a random tree, and getting multiple measurments
 tree110 <- filter_poi(las_segmented_trees, treeID == 110)
@@ -496,6 +499,62 @@ launchApp()
 
 
 ```
+
+```{r}
+# not sure if we need any of this
+
+plot(las)
+
+chm <- rasterize_canopy(las, 2, p2r())
+col <- random.colors(50)
+plot(chm, col = col)
+
+plot(las, color = "ScanAngleRank", bg = "white", axis = TRUE, legend = TRUE)
+
+plot(las, color ="RGB")
+plot(las, color = "Intensity", breaks = "quantile", bg = "white")
+
+x <- plot(las, bg = "white", size = 3)
+add_dtm3d(x, dtm)
+
+x <- plot(las, bg = "white", size = 3)
+add_treetops3d(x, ttops)
+
+gnd <- filter_ground(las)
+plot(gnd, size = 3, bg = "white", color = "Classification")
+
+
+dtm <- rasterize_terrain(las, 1, knnidw())
+plot(dtm, col = gray(1:50/50))
+
+nlas <- las - dtm
+plot(nlas, size = 4, bg = "white")
+hist(filter_ground(nlas)$Z, main = "", xlab = "Elevation")
+hist(nlas$Z)
+
+
+#smaller ws argument means smaller area to compute local maxima
+ttops <- locate_trees(las, lmf(ws = 5))
+ttops
+
+plot(chm, col = height.colors(50))
+plot(sf::st_geometry(ttops), add = TRUE, pch = 3)
+
+x <- plot(las, bg = "white", size = 4)
+add_treetops3d(x, ttops)
+
+#larger ws argument = bigger area to compute local maxima
+ttops_11m <- locate_trees(las, lmf(ws = 11))
+plot(sf::st_geometry(ttops_11m), add = TRUE, pch = 3)
+
+
+plot(chm, col = height.colors(50))
+plot(las)
+
+plot(sf::st_geometry(ttops), pch = 3)
+
+```
+
 *Doing everything for Halidon*
 
 ```{r}
