@@ -1,9 +1,9 @@
 #' ---
 #' title: "Wetland Bird Analysis"
 #' author: "Dan McGlinn"
-#' date: '`r paste("First created on 2015-01-29. Updated on", Sys.Date())`'
+#' date: '`r paste("First created on 2022-02-24. Updated on", Sys.Date())`'
 #' output: 
-#'  html_document
+#'  pdf_document
 #'---
 
 library(mobr)
