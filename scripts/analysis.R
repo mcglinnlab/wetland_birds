@@ -79,6 +79,7 @@ for(i in seq_along(indices)) {
 lapply(div_mods_me, summary)
 lapply(div_mods_me, r.squaredGLMM)
 lapply(div_mods_me, anova)
+lapply(div_mods_me, function(x) intervals(x, which = 'fixed'))
 
 #' # Model Diagnostics
 # fitted values vs residuals
@@ -164,6 +165,7 @@ div_mods$S_asymp <- glm(S_asymp ~ site_type + site + block, data = dat_agg, fami
 
 lapply(div_mods, summary)
 lapply(div_mods, anova)
+lapply(div_mods_me, function(x) intervals(x, which = 'fixed'))
 
 #' use mixed effect model to account for pseudo-replicates
 
@@ -327,5 +329,12 @@ dat_mob_in <- make_mob_in(dat[ , 12:66], dat)
 par(mfrow=c(1,3))
 plot_rarefaction(dat_mob_in, group_var = 'site_type', method = 'IBR', avg= TRUE,
                  log='xy')
+
+
+tst <- aggregate(dat_agg[ , 69:123], list(dat_agg$site_type), sum)
+rowSums(tst[ , -1])
+calc_comm_div(tst[, -1], index = c('S', 'S_n', "S_PIE"), effort = 90, scales = 'beta')
+
+
 
 
