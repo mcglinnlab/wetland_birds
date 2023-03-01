@@ -22,6 +22,27 @@ comm <- read.csv('./data/filtered_data/clean_bird_comm.csv')
 row.names(comm) <- comm[ , 1]
 comm <- comm[ , -1]
 
+
+## REDUNDANCY ANALYSIS to GET COMMUNITY COMP between SITE_TYPE
+## after controlling for SITE
+
+# first aggregate comm4 at the wetland id year scale so that we reduce
+# psuedo replication
+
+bird_rda <- rda(comm ~ site_type + site, 
+                data = dat)
+bird_rda
+?rda
+RsquareAdj(bird_rda)
+
+bird_rda <- rda(comm ~ site_type + site, 
+                data = dat)
+par(mfrow=c(1, 1))
+
+plot(bird_rda, display = c('cn', 'sp'))
+
+anova(bird_rda, by='margin', permutations=1000)
+
 #head(dat)
 #head(comm)
 
