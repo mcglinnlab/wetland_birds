@@ -22,6 +22,7 @@ comm <- read.csv('./data/filtered_data/clean_bird_comm.csv')
 row.names(comm) <- comm[ , 1]
 comm <- comm[ , -1]
 
+dat$block <- as.factor(dat$block)
 
 ## REDUNDANCY ANALYSIS to GET COMMUNITY COMP between SITE_TYPE
 ## after controlling for SITE
