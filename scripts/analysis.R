@@ -24,7 +24,7 @@ comm <- comm[ , -1]
 
 dat$block <- as.factor(dat$block)
 
-## REDUNDANCY ANALYSIS to GET COMMUNITY COMP between SITE_TYPE
+## REDUNDANCY ANALYSIS to GET COMMUNITY COMP between SITE_TYPE ----------
 ## after controlling for SITE
 
 # first aggregate comm4 at the wetland id year scale so that we reduce
@@ -62,21 +62,7 @@ dat$S_n <- ifelse(dat$S_n == 1, NA, dat$S_n)
 dat$S_PIE <- calc_SPIE(comm)
 dat$S_asymp <- apply(comm, 1, calc_chao1)
 
-par(mfrow=c(2,3)) 
-plot(density(dat$N))
-plot(density(dat$S))
-plot(density(dat$S_n, na.rm = TRUE))
-plot(density(dat$S_PIE, na.rm = TRUE))
-plot(density(dat$S_asymp, na.rm = TRUE))
-
-
-par(mfrow=c(2,3)) 
-boxplot(N ~ site_type, data = dat)
-boxplot(S ~ site_type, data = dat)
-boxplot(S_n ~ site_type, data = dat)
-boxplot(S_PIE ~ site_type, data = dat)
-boxplot(S_asymp ~ site_type, data = dat)
-
+# glm models
 div_mods <- list()
 div_mods$N <- glm(N ~ site_type + site + block, data = dat, family = 'poisson')
 div_mods$S <- glm(S ~ site_type + site + block, data = dat, family = 'poisson')
@@ -102,6 +88,95 @@ lapply(div_mods_me, summary)
 lapply(div_mods_me, r.squaredGLMM)
 lapply(div_mods_me, anova)
 lapply(div_mods_me, function(x) intervals(x, which = 'fixed'))
+
+# creating the final PLOTS -----
+?summarise
+## generating the means, sd, se, and ic for abundance
+sum_var_site_N <- dat %>%
+  group_by(site_type) %>%
+  summarise( 
+    n=n(),
+    mean=mean(N),
+    sd=sd(N),
+  ) %>%
+  mutate( se=sd/sqrt(n))  %>%
+  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
+
+site_abun <- ggplot(sum_var_site_N) +
+  geom_bar( aes(x=site_type, y=mean, fill = site_type), stat = "identity", width = 0.7) +
+  geom_errorbar( aes(x=site_type, ymin=mean-se, ymax=mean+se), width=0.15, 
+                 colour="black", alpha=0.7, size=0.5) + theme_bw() + 
+  xlab("Site") + ylab("Mean Abundance (N)") + theme(legend.position = 'none')
+
+site_abun
+
+# generating the means, sd, se, and ic for richness
+
+sum_var_gamma_a <- dat %>%
+  group_by(site_type) %>%
+  summarise( 
+    n=n(),
+    mean=mean(S),
+    sd=sd(S)
+  ) %>%
+  mutate( se=sd/sqrt(n))  %>%
+  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
+
+
+#barplot
+a_p <- ggplot(sum_var_gamma_a) +
+  geom_bar(aes(x=site_type, y=mean, fill = site_type), stat = "identity", width = 0.7) +
+  geom_errorbar( aes(x=site_type, ymin=mean-se, ymax=mean+se), width=0.15, 
+                 colour="black", alpha=0.7, size=0.5) + theme_bw() + 
+  xlab("Site Type") + ylab("Mean Species Richness (S)") + theme(legend.position = 'none')
+
+a_p
+
+## generating the means, sd, se, and ic for S_n
+sum_var_gamma_a_S_n <- dat %>%
+  group_by(site_type) %>%
+  summarise( 
+    n=n(),
+    mean=mean(S_n, na.rm = T),
+    sd=sd(S_n, na.rm = T)
+  ) %>%
+  mutate( se=sd/sqrt(n))  %>%
+  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
+
+#barplot
+a_sn_p <- ggplot(sum_var_gamma_a_S_n) +
+  geom_bar(aes(x=site_type, y=mean, fill = site_type), stat = "identity", width = 0.7) +
+  geom_errorbar( aes(x=site_type, ymin=mean-se, ymax=mean+se), width=0.15, 
+                 colour="black", alpha=0.7, size=0.5) + theme_bw() + 
+  xlab("Site Type") + ylab(expression(Mean~Rarefied~Richness~(S[n]))) + theme(legend.position = 'none')
+
+a_sn_p
+
+
+## generating the means, sd, se, and ic for S_PIE
+sum_var_gamma_a_S_PIE <- dat %>%
+  group_by(site_type) %>%
+  summarise( 
+    n=n(),
+    mean=mean(S_PIE, na.rm = T),
+    sd=sd(S_PIE, na.rm = T)
+  ) %>%
+  mutate( se=sd/sqrt(n))  %>%
+  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
+
+#barplot
+a_pie_p <- ggplot(sum_var_gamma_a_S_PIE) +
+  geom_bar(aes(x=site_type, y=mean, fill = site_type), stat = "identity", width = 0.7) +
+  geom_errorbar( aes(x=site_type, ymin=mean-se, ymax=mean+se), width=0.15, 
+                 colour="black", alpha=0.7, size=0.5) + theme_bw() + 
+  xlab("Site Type") + ylab(expression(Mean~Evenness~(S[PIE]))) + theme(legend.position = 'none')
+
+a_pie_p
+
+## arranging plots
+grid.arrange(arrangeGrob(site_abun, a_p, a_sn_p, a_pie_p), ncol = 1, nrow = 1) 
+
+
 
 #' # Model Diagnostics
 # fitted values vs residuals
@@ -357,6 +432,42 @@ tst <- aggregate(dat_agg[ , 69:123], list(dat_agg$site_type), sum)
 rowSums(tst[ , -1])
 calc_comm_div(tst[, -1], index = c('S', 'S_n', "S_PIE"), effort = 90, scales = 'beta')
 
+# Chp 2 within wetland variation ------
 
+## First let's try an RDA to see which env variables are driving community comp
+comm_wet <- comm[1:150, ]
+dat_wet <- dat[1:150, ]
+
+rda_tree <- rda(comm_wet ~ canopy_cover_sim + 
+                  crown_hull_mean + tree_ba, data=dat_wet)
+
+rda_tree
+
+RsquareAdj(rda_tree)
+
+plot(rda_tree, type='n', scaling=1)
+orditorp(rda_tree, display='sp', cex=0.5, scaling=1, col='blue')
+text(rda_tree, display='cn', col='red')
+
+
+anova(rda_tree, by='margin', permutations=1000)
+
+# mixed effect models to predict env variables after controlling for wetland_id
+# year and block
+
+indices <- c('N', 'S', 'S_n', 'S_PIE', 'S_asymp')
+div_mods_env <- vector('list', length(indices))
+names(div_mods_env) <- indices
+for(i in seq_along(indices)) {
+  div_mods_env[[i]] <- lme(as.formula(paste(indices[i], "~ canopy_cover_sim + crown_hull_mean + tree_ba")),
+                          random = ~1 |  year / block / wetland_id, data = dat_wet,
+                          na.action = na.omit)
+}
+
+lapply(div_mods_env, summary)
+lapply(div_mods_env, r.squaredGLMM)
+lapply(div_mods_env, anova)
+
+# individual species models
 
 

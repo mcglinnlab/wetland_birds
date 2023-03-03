@@ -37,7 +37,7 @@ veg$site_type[veg$wetland_id == 'SP01'] <- rep('wetland', 4)
 
 # wetland assessment env matrix
 
-wet_env <- read.csv("./data/raw_data - just_wet_attribute.csv")
+wet_env <- read.csv("./data/raw_data - just_wet_attribute_raw.csv")
 summary(wet_env$block)
 # note in this data file a lot of the blocks are incomplete listed as NAs 
 # drop this block column as it is misleading
