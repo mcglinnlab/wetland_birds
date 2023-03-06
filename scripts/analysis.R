@@ -11,7 +11,7 @@ library(dplyr)
 library(nlme)
 library(lme4)
 library(MuMIn)
-
+library(scales)
 
 #+ echo=FALSE
 knitr::opts_knit$set(root.dir='../', tidy = TRUE)
@@ -362,7 +362,7 @@ save(betas, curves, file = './results/div_boostrap_results.Rdata')
 
 
 #+ eval = TRUE
-load(file = './results/div_boostrap_results.Rdata')
+load(file = './div_boostrap_results.Rdata')
 
 #' aggregated across boostraps
 #+ eval = TRUE
@@ -375,18 +375,24 @@ curves_sum <- curves %>% group_by(site_type, scale, effort) %>%
 
 #' Here are the computed beta-diversity metrics with 95% CI 
 beta_sum
+beta_sum$site_type <- as.factor(beta_sum$site_type)
+as.data.frame(beta_sum)
+
+#re-ordering
+beta_order <- rbind(beta_sum[3:8, ], beta_sum[1:2 , ])
+?barplot
+
 # make parplot
 par(mfrow=c(1,1))
-tmp <- barplot(height = beta_sum$beta_avg, col = c('pink', 'dodgerblue'), ylim = c(0, 5),
-               names = beta_sum$index, cex.names = 0.75)
+tmp <- barplot(height = beta_order$beta_avg, col = c( "#F8766D", "#00BFC4"), border = NA, ylim = c(0, 5),
+               names = beta_order$index, cex.names = 0.75, legend.text = TRUE)
 arrows(x0 = tmp, 
-       y0 = beta_sum$beta_lo,
-       y1 = beta_sum$beta_hi, 
+       y0 = beta_order$beta_lo,
+       y1 = beta_order$beta_hi, 
        angle = 90,
        code = 3,
        length = 0.1)
 abline(h = 1, col='grey', lty =2, lwd =2)
-
 
 nmax <- curves %>% group_by(site_type, scale, boot) %>%
   summarize(N_max = max(effort)) %>%
@@ -439,7 +445,7 @@ comm_wet <- comm[1:150, ]
 dat_wet <- dat[1:150, ]
 
 rda_tree <- rda(comm_wet ~ canopy_cover_sim + 
-                  crown_hull_mean + tree_ba, data=dat_wet)
+                  crown_hull_mean + pine_dbh + tupelo_dbh + wet_area, data=dat_wet)
 
 rda_tree
 
@@ -452,14 +458,25 @@ text(rda_tree, display='cn', col='red')
 
 anova(rda_tree, by='margin', permutations=1000)
 
+
+# creating the glm models 
+div_mods_env <- list()
+div_mods_env$N <- glm(N ~ canopy_cover_sim + crown_hull_mean + tupelo_dbh + wet_area + pine_dbh, data = dat_wet, family = 'poisson')
+div_mods_env$S <- glm(S ~ canopy_cover_sim + crown_hull_mean + tupelo_dbh + wet_area + pine_dbh, data = dat_wet, family = 'poisson')
+div_mods_env$S_n <- glm(S_n ~ canopy_cover_sim + crown_hull_mean + tupelo_dbh + wet_area + pine_dbh, data = dat_wet, family = 'quasipoisson')
+div_mods_env$S_PIE <- glm(S_PIE ~ canopy_cover_sim + crown_hull_mean + tupelo_dbh + wet_area + pine_dbh, data = dat_wet, family = 'quasipoisson')
+div_mods_env$S_asymp <- glm(S_asymp ~ canopy_cover_sim + crown_hull_mean + tupelo_dbh + wet_area + pine_dbh, data = dat_wet, family = 'quasipoisson')
+
+lapply(div_mods_env, summary)
+lapply(div_mods_env, anova)
+
 # mixed effect models to predict env variables after controlling for wetland_id
 # year and block
-
-indices <- c('N', 'S', 'S_n', 'S_PIE', 'S_asymp')
+indices_env <- c('N', 'S', 'S_n', 'S_PIE', 'S_asymp')
 div_mods_env <- vector('list', length(indices))
 names(div_mods_env) <- indices
 for(i in seq_along(indices)) {
-  div_mods_env[[i]] <- lme(as.formula(paste(indices[i], "~ canopy_cover_sim + crown_hull_mean + tree_ba")),
+  div_mods_env[[i]] <- lme(as.formula(paste(indices_env[i], "~ canopy_cover_sim + crown_hull_mean + tupelo_dbh + wet_area + pine_dbh")),
                           random = ~1 |  year / block / wetland_id, data = dat_wet,
                           na.action = na.omit)
 }
@@ -468,6 +485,20 @@ lapply(div_mods_env, summary)
 lapply(div_mods_env, r.squaredGLMM)
 lapply(div_mods_env, anova)
 
-# individual species models
+# individual species abundance models
+# subsetting to get individual species
 
+comm_NOPA <- comm_wet["NOPA"]
+as.data.frame(comm_NOPA)
+class(comm_NOPA$NOPA)
 
+div_mods_NOPA <- (lme(comm_NOPA$NOPA ~ canopy_cover_sim + 
+                       crown_hull_mean + pine_dbh + tupelo_dbh + wet_area,
+                        random = ~1 | year / block / wetland_id, data = dat_wet,
+                        na.action = na.omit))
+
+alpha_div_NOPA <- (glm(comm_NOPA$NOPA ~ canopy_cover_sim + 
+                         crown_hull_mean + pine_dbh + tupelo_dbh + wet_area, data = dat_wet, family = binomial))
+summary(alpha_div_NOPA)
+?glm
+plot(dat_wet$canopy_cover_sim, comm_NOPA$NOPA)
