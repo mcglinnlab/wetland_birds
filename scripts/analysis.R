@@ -433,6 +433,32 @@ par(mfrow=c(1,3))
 plot_rarefaction(dat_mob_in, group_var = 'site_type', method = 'IBR', avg= TRUE,
                  log='xy')
 
+# study scale comparison
+
+addCI <- function(S, col = 'grey') {
+  stdev <- attr(S, 'sd')
+  Shi <- S + stdev * 1.96
+  Slo <- S - stdev * 1.96
+  n <- length(S)
+  polygon(c(1:n, n:1), c(Shi, rev(Slo)), col = col)
+}
+  
+
+par(mfrow=c(1,1))
+Sstudy <- rarefaction(dat_mob_in$comm, 'SBR')
+Sup <- rarefaction(dat_mob_in$comm[dat_mob_in$env$site_type == 'upland', ], 'SBR', 
+                   sd = FALSE)
+Swet <- rarefaction(dat_mob_in$comm[dat_mob_in$env$site_type == 'wetland', ], 'SBR', 
+                    sd = FALSE)
+plot(Sstudy, xlab = 'Number of Point Counts', ylab = 'Number of Species',
+     type ='l', lwd = 2, frame.plot = F, xlim = c(0, 200), ylim = c(0, 50))
+#addCI(Sup)
+#addCI(Swet)
+lines(Sup, col = 'red', lwd = 2)
+
+lines(Swet, col = 'blue', lwd = 2)
+legend('bottomright', c('Wetlands & Uplands', 'Wetlands', 'Uplands'),
+       col=c('black','blue','red'), lty = 1, lwd = 2, bty='n')
 
 tst <- aggregate(dat_agg[ , 69:123], list(dat_agg$site_type), sum)
 rowSums(tst[ , -1])
