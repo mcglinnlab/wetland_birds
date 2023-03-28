@@ -41,6 +41,11 @@ bird_rda <- rda(comm ~ site_type + site,
 par(mfrow=c(1, 1))
 
 plot(bird_rda, display = c('cn', 'sp'))
+orditorp(bird_rda, display= 'sp', col = "red", air = 0.65)
+
+plot(bird_rda, type='n', scaling=1)
+orditorp(bird_rda, display='sp', cex=0.5, scaling=1, col='blue')
+text(bird_rda, display='cn', col='red')
 
 anova(bird_rda, by='margin', permutations=1000)
 
