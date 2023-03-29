@@ -38,14 +38,17 @@ RsquareAdj(bird_rda)
 
 bird_rda <- rda(comm ~ site_type + site, 
                 data = dat)
+
 par(mfrow=c(1, 1))
 
 plot(bird_rda, display = c('cn', 'sp'))
 orditorp(bird_rda, display= 'sp', col = "red", air = 0.65)
 
+pdf('fig4.pdf')
 plot(bird_rda, type='n', scaling=1)
-orditorp(bird_rda, display='sp', cex=0.5, scaling=1, col='blue')
-text(bird_rda, display='cn', col='red')
+orditorp(bird_rda, display='sp', scaling = 1, cex=1, col='black', air = 2)
+text(bird_rda, display='bp', col='red', labels = c('Upland', 'Wetland','Halidon', 'Stono'))
+dev.off()
 
 anova(bird_rda, by='margin', permutations=1000)
 
@@ -459,11 +462,11 @@ plot(Sstudy, xlab = 'Number of Point Counts', ylab = 'Number of Species',
      type ='l', lwd = 2, frame.plot = F, xlim = c(0, 200), ylim = c(0, 50))
 #addCI(Sup)
 #addCI(Swet)
-lines(Sup, col = 'red', lwd = 2)
+lines(Sup, col = '#F8766D', lwd = 2)
 
-lines(Swet, col = 'blue', lwd = 2)
+lines(Swet, col = '#00BFC4', lwd = 2)
 legend('bottomright', c('Wetlands & Uplands', 'Wetlands', 'Uplands'),
-       col=c('black','blue','red'), lty = 1, lwd = 2, bty='n')
+       col=c('black','#00BFC4','#F8766D'), lty = 1, lwd = 2, bty='n')
 
 tst <- aggregate(dat_agg[ , 69:123], list(dat_agg$site_type), sum)
 rowSums(tst[ , -1])
@@ -489,6 +492,12 @@ text(rda_tree, display='cn', col='red')
 
 anova(rda_tree, by='margin', permutations=1000)
 
+plot(dat_wet$tupelo_dbh, dat_wet$S_PIE)
+historgram(dat_wet$S_PIE)
+
+pseudo_r2 = function(glm_mod) {
+  1 -  glm_mod$deviance / glm_mod$null.deviance
+}
 
 # creating the glm models 
 div_mods_env <- list()
@@ -500,24 +509,30 @@ div_mods_env$S_asymp <- glm(S_asymp ~ canopy_cover_sim + crown_hull_mean + tupel
 
 lapply(div_mods_env, summary)
 lapply(div_mods_env, anova)
+lapply(div_mods_env, pseudo_r2)
 
 # mixed effect models to predict env variables after controlling for wetland_id
 # year and block
 indices_env <- c('N', 'S', 'S_n', 'S_PIE', 'S_asymp')
-div_mods_env <- vector('list', length(indices))
+div_mods_env <- null_mods_env <- vector('list', length(indices))
 names(div_mods_env) <- indices
 for(i in seq_along(indices)) {
   div_mods_env[[i]] <- lme(as.formula(paste(indices_env[i], "~ canopy_cover_sim + crown_hull_mean + tupelo_dbh + wet_area + pine_dbh")),
                           random = ~1 |  year / block / wetland_id, data = dat_wet,
                           na.action = na.omit)
+  null_mods_env[[i]] <- lme(as.formula(paste(indices_env[i], "~ 1")),
+                            random = ~1 |  year / block / wetland_id, data = dat_wet,
+                           na.action = na.omit)
 }
 
 lapply(div_mods_env, summary)
 lapply(div_mods_env, r.squaredGLMM)
 lapply(div_mods_env, anova)
+mapply(anova, div_mods_env, null_mods_env)
 
 # individual species abundance models
 # subsetting to get individual species
+#NOPA ----
 
 comm_NOPA <- comm_wet["NOPA"]
 as.data.frame(comm_NOPA)
@@ -529,7 +544,41 @@ div_mods_NOPA <- (lme(comm_NOPA$NOPA ~ canopy_cover_sim +
                         na.action = na.omit))
 
 alpha_div_NOPA <- (glm(comm_NOPA$NOPA ~ canopy_cover_sim + 
-                         crown_hull_mean + pine_dbh + tupelo_dbh + wet_area, data = dat_wet, family = binomial))
+                         crown_hull_mean + pine_dbh + tupelo_dbh + wet_area,
+                       data = dat_wet, family = binomial))
 summary(alpha_div_NOPA)
 ?glm
-plot(dat_wet$canopy_cover_sim, comm_NOPA$NOPA)
+histogram(comm_NOPA$NOPA)
+
+# WEVI ----
+
+comm_WEVI <- comm_wet["WEVI"]
+as.data.frame(comm_WEVI)
+class(comm_WEVI$WEVI)
+
+div_mods_WEVI <- (lme(comm_WEVI$WEVI ~ canopy_cover_sim + 
+                        crown_hull_mean + pine_dbh + tupelo_dbh + wet_area,
+                      random = ~1 | year / block / wetland_id, data = dat_wet,
+                      na.action = na.omit))
+
+alpha_div_WEVI <- (glm(comm_WEVI$WEVI ~ canopy_cover_sim + 
+                         crown_hull_mean + pine_dbh + tupelo_dbh + wet_area, 
+                       data = dat_wet, family = "poisson"))
+
+summary(alpha_div_WEVI)
+?glm
+histogram(comm_WEVI$WEVI)
+
+# COYE ----
+
+comm_COYE <- comm_wet["COYE"]
+as.data.frame(comm_COYE)
+class(comm_COYE$COYE)
+
+alpha_div_COYE <- (glm(comm_COYE$COYE ~ canopy_cover_sim + 
+                         crown_hull_mean + pine_dbh + tupelo_dbh + wet_area, 
+                       data = dat_wet, family = poisson))
+
+summary(alpha_div_COYE)
+?glm
+histogram(comm_COYE$COYE)
