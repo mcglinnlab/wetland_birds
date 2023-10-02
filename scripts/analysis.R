@@ -5,14 +5,14 @@
 #' output: 
 #'  pdf_document
 #'---
-
+library(vegan)
 library(mobr)
 library(dplyr)
 library(nlme)
 library(lme4)
 library(MuMIn)
 library(scales)
-
+library(ggplot2)
 #+ echo=FALSE
 knitr::opts_knit$set(root.dir='../', tidy = TRUE)
 
@@ -67,7 +67,7 @@ dat$S_n <- apply(comm, 1, rarefaction, 'IBR', effort = 5, extrapolate = F,
                  quiet_mode = TRUE)
 # singletons will result in rarefaction that results in 1 species which isn't useful
 dat$S_n <- ifelse(dat$S_n == 1, NA, dat$S_n)
-dat$S_PIE <- calc_SPIE(comm)
+dat$S_PIE <- calc_PIE(comm, ENS = TRUE)
 dat$S_asymp <- apply(comm, 1, calc_chao1)
 
 # glm models
@@ -80,6 +80,7 @@ div_mods$S_asymp <- glm(S_asymp ~ site_type + site + block, data = dat, family =
 
 lapply(div_mods, summary)
 lapply(div_mods, anova)
+
 
 #' use mixed effect model to account for pseudo-replicates
 
@@ -176,7 +177,7 @@ sum_var_gamma_a_S_PIE <- dat %>%
 a_pie_p <- ggplot(sum_var_gamma_a_S_PIE) +
   geom_bar(aes(x=site_type, y=mean, fill = site_type), stat = "identity", width = 0.7) +
   geom_errorbar( aes(x=site_type, ymin=mean-se, ymax=mean+se), width=0.15, 
-                 colour="black", alpha=0.7, size=0.5) + theme_bw() + 
+                 colour="black", alpha=0.7, linewidth=0.5) + theme_bw() + 
   xlab("Site Type") + ylab(expression(Mean~Evenness~(S[PIE]))) + theme(legend.position = 'none')
 
 a_pie_p
@@ -184,6 +185,28 @@ a_pie_p
 ## arranging plots
 grid.arrange(arrangeGrob(site_abun, a_p, a_sn_p, a_pie_p), ncol = 1, nrow = 1) 
 
+
+
+###### SUPPLEMENT S_asmptote plot
+## generating the means, sd, se, and ic for S_PIE
+sum_var_gamma_a_S_asm <- dat %>%
+  group_by(site_type) %>%
+  summarise( 
+    n=n(),
+    mean=mean(S_asymp, na.rm = T),
+    sd=sd(S_asymp, na.rm = T)
+  ) %>%
+  mutate( se=sd/sqrt(n))  %>%
+  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
+
+#barplot
+a_asm_p <- ggplot(sum_var_gamma_a_S_asm) +
+  geom_bar(aes(x=site_type, y=mean, fill = site_type), stat = "identity", width = 0.7) +
+  geom_errorbar( aes(x=site_type, ymin=mean-se, ymax=mean+se), width=0.15, 
+                 colour="black", alpha=0.7, linewidth=0.5) + theme_bw() + 
+  xlab("Site Type") + ylab(expression(Extrapolated~Richness~(S[asymptote]))) + theme(legend.position = 'none')
+
+a_asm_p
 
 
 #' # Model Diagnostics
