@@ -88,8 +88,8 @@ indices <- c('N', 'S', 'S_n', 'S_PIE', 'S_asymp')
 div_mods_me <- vector('list', length(indices))
 names(div_mods_me) <- indices
 for(i in seq_along(indices)) {
-  div_mods_me[[i]] <- lme(as.formula(paste(indices[i], "~ site_type + site")),
-                        random = ~1 | year / block / wetland_id, data = dat,
+  div_mods_me[[i]] <- lme(as.formula(paste(indices[i], "~ site_type")),
+                        random = ~1 | site / year / block / wetland_id, data = dat,
                         na.action = na.omit)
 }
 
@@ -98,7 +98,62 @@ lapply(div_mods_me, r.squaredGLMM)
 lapply(div_mods_me, anova)
 lapply(div_mods_me, function(x) intervals(x, which = 'fixed'))
 
+# those confidence intervals for the parameters are almost
+# what we want use Bolker's function to get predicted means
+# and standard errors or 95% CI's if desired. 
+bolker_ci <- function(model, newdat, pred_int = FALSE, conf_level = 0.95) {
+  if(class(model) != "lme") {
+    stop("works for lme-models only")
+  }
+  z <- round(qnorm((1-conf_level)/2, lower.tail = FALSE), 2)
+  newdat$pred <- predict(model, newdat, level = 0)
+  Designmat <- model.matrix(formula(model)[-2], newdat)
+  predvar <- diag(Designmat %*% vcov(model) %*% t(Designmat))
+  newdat$se <- sqrt(predvar)
+  newdat$ci_l <- newdat$pred - z*newdat$se
+  newdat$ci_h <- newdat$pred + z*newdat$se
+  if(pred_int == TRUE) {
+    newdat$se2 <- sqrt(predvar+model$sigma^2)
+    newdat$predint_l <- newdat$pred - z*newdat$se2
+    newdat$predint_h <- newdat$pred + z*newdat$se2
+  }
+  newdat
+}
+
+newdata <- data.frame(site_type = as.factor(c('upland','wetland')))
+
+bolker_ci(div_mods_me[[i]], newdata)
+
 # creating the final PLOTS -----
+
+plt <- list()
+ylabs <- c('Mean abundance (N)', 'Mean species richness (S)',
+           'Mean rarefied richness (Sn)',
+           'Mean species evenness (SPIE)',
+           'Mean asympotic richness (Chao1)')
+xlabs <- c('', '', 'Habitat type', 'Habitat type', 'Habitat type')
+for(i in seq_along(div_mods_me)) {
+  plt[[i]] <- ggplot(bolker_ci(div_mods_me[[i]], newdata)) +
+    geom_bar(aes(x=site_type, y = pred, fill = site_type), stat = "identity",
+             width = 0.7) +
+    geom_errorbar( aes(x=site_type, ymin=pred + se, ymax=pred - se), width=0.15, 
+                   colour="black", alpha=0.7, size=0.5) + theme_bw() + 
+    xlab(xlabs[i]) + ylab(ylabs[i]) +
+    theme(legend.position = 'none')
+}
+
+## arranging plots
+pdf('results/div_bar_plots.pdf')
+grid.arrange(arrangeGrob(plt[[1]], plt[[2]], plt[[3]], plt[[4]]), ncol = 1, nrow = 1) 
+dev.off()
+
+# sup plot
+pdf('results/asymS_barplot.pdf')
+plt[[5]]
+dev.off()
+
+# the other graphing methods could be removed. 
+
 ?summarise
 ## generating the means, sd, se, and ic for abundance
 sum_var_site_N <- dat %>%
