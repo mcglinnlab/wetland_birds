@@ -13,6 +13,7 @@ library(lme4)
 library(MuMIn)
 library(scales)
 library(ggplot2)
+library(gridExtra)
 #+ echo=FALSE
 knitr::opts_knit$set(root.dir='../', tidy = TRUE)
 
@@ -98,6 +99,7 @@ lapply(div_mods_me, r.squaredGLMM)
 lapply(div_mods_me, anova)
 lapply(div_mods_me, function(x) intervals(x, which = 'fixed'))
 
+
 # those confidence intervals for the parameters are almost
 # what we want use Bolker's function to get predicted means
 # and standard errors or 95% CI's if desired. 
@@ -122,15 +124,17 @@ bolker_ci <- function(model, newdat, pred_int = FALSE, conf_level = 0.95) {
 
 newdata <- data.frame(site_type = as.factor(c('upland','wetland')))
 
-bolker_ci(div_mods_me[[i]], newdata)
+#coefficients for ggplot figure construction
+for(i in seq_along(indices)) {
+  print(bolker_ci(div_mods_me[[i]], newdata))}
 
 # creating the final PLOTS -----
 
 plt <- list()
 ylabs <- c('Mean abundance (N)', 'Mean species richness (S)',
-           'Mean rarefied richness (Sn)',
-           'Mean species evenness (SPIE)',
-           'Mean asympotic richness (Chao1)')
+           expression(Mean~rarefied~richness~(S[n])),
+           expression(Mean~species~evenness~(S[PIE])),
+           expression(Mean~asymptotic~richness~(S[asym])))
 xlabs <- c('', '', 'Habitat type', 'Habitat type', 'Habitat type')
 for(i in seq_along(div_mods_me)) {
   plt[[i]] <- ggplot(bolker_ci(div_mods_me[[i]], newdata)) +
