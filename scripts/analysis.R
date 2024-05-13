@@ -20,10 +20,27 @@ knitr::opts_knit$set(root.dir='../', tidy = TRUE)
 #' Read in data
 dat <- read.csv('./data/filtered_data/clean_bird_dat.csv')
 comm <- read.csv('./data/filtered_data/clean_bird_comm.csv')
-row.names(comm) <- comm[ , 1]
-comm <- comm[ , -1]
+
+
+# filtering out blocks 7 + 8
+dat <- dat %>%
+  filter(block < 7)
+
+
+# filtering out 5 sites that don't have corresponding upland counts in the block
+dat <- dat %>%
+  filter(wetland_id != "SP05", wetland_id != "SP13", wetland_id != "SP12", wetland_id != "SP16", 
+         wetland_id != "SP05", wetland_id != "SP11", wetland_id != "HH34", wetland_id != "HH05",
+         wetland_id != "HH07")
 
 dat$block <- as.factor(dat$block)
+
+# getting rid of those same rows in the community matrix
+comm <- comm %>%
+  filter(X %in% dat$uni_id_date)
+
+row.names(comm) <- comm[ , 1]
+comm <- comm[ , -1]
 
 ## REDUNDANCY ANALYSIS to GET COMMUNITY COMP between SITE_TYPE ----------
 ## after controlling for SITE
@@ -125,10 +142,17 @@ bolker_ci <- function(model, newdat, pred_int = FALSE, conf_level = 0.95) {
 newdata <- data.frame(site_type = as.factor(c('upland','wetland')))
 
 #coefficients for ggplot figure construction
-for(i in seq_along(indices)) {
-  print(bolker_ci(div_mods_me[[i]], newdata))}
+table_output <- list()
+for(i in seq_along(div_mods_me)) {
+  table_output[[i]] <- (bolker_ci(div_mods_me[[i]], newdata))
+}
+table_output2 <- as.data.frame(table_output)
+write.csv(table_output, file = "table.csv")
 
-# creating the final PLOTS -----
+table_output <- (bolker_ci(div_mods_me[[]], newdata))
+
+?write.csv
+# creating the final PLOTS for upland v wetland-----
 
 plt <- list()
 ylabs <- c('Mean abundance (N)', 'Mean species richness (S)',
@@ -156,116 +180,6 @@ pdf('results/asymS_barplot.pdf')
 plt[[5]]
 dev.off()
 
-# the other graphing methods could be removed. 
-
-?summarise
-## generating the means, sd, se, and ic for abundance
-sum_var_site_N <- dat %>%
-  group_by(site_type) %>%
-  summarise( 
-    n=n(),
-    mean=mean(N),
-    sd=sd(N),
-  ) %>%
-  mutate( se=sd/sqrt(n))  %>%
-  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
-
-site_abun <- ggplot(sum_var_site_N) +
-  geom_bar( aes(x=site_type, y=mean, fill = site_type), stat = "identity", width = 0.7) +
-  geom_errorbar( aes(x=site_type, ymin=mean-se, ymax=mean+se), width=0.15, 
-                 colour="black", alpha=0.7, size=0.5) + theme_bw() + 
-  xlab("Site") + ylab("Mean Abundance (N)") + theme(legend.position = 'none')
-
-site_abun
-
-# generating the means, sd, se, and ic for richness
-
-sum_var_gamma_a <- dat %>%
-  group_by(site_type) %>%
-  summarise( 
-    n=n(),
-    mean=mean(S),
-    sd=sd(S)
-  ) %>%
-  mutate( se=sd/sqrt(n))  %>%
-  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
-
-
-#barplot
-a_p <- ggplot(sum_var_gamma_a) +
-  geom_bar(aes(x=site_type, y=mean, fill = site_type), stat = "identity", width = 0.7) +
-  geom_errorbar( aes(x=site_type, ymin=mean-se, ymax=mean+se), width=0.15, 
-                 colour="black", alpha=0.7, size=0.5) + theme_bw() + 
-  xlab("Site Type") + ylab("Mean Species Richness (S)") + theme(legend.position = 'none')
-
-a_p
-
-## generating the means, sd, se, and ic for S_n
-sum_var_gamma_a_S_n <- dat %>%
-  group_by(site_type) %>%
-  summarise( 
-    n=n(),
-    mean=mean(S_n, na.rm = T),
-    sd=sd(S_n, na.rm = T)
-  ) %>%
-  mutate( se=sd/sqrt(n))  %>%
-  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
-
-#barplot
-a_sn_p <- ggplot(sum_var_gamma_a_S_n) +
-  geom_bar(aes(x=site_type, y=mean, fill = site_type), stat = "identity", width = 0.7) +
-  geom_errorbar( aes(x=site_type, ymin=mean-se, ymax=mean+se), width=0.15, 
-                 colour="black", alpha=0.7, size=0.5) + theme_bw() + 
-  xlab("Site Type") + ylab(expression(Mean~Rarefied~Richness~(S[n]))) + theme(legend.position = 'none')
-
-a_sn_p
-
-
-## generating the means, sd, se, and ic for S_PIE
-sum_var_gamma_a_S_PIE <- dat %>%
-  group_by(site_type) %>%
-  summarise( 
-    n=n(),
-    mean=mean(S_PIE, na.rm = T),
-    sd=sd(S_PIE, na.rm = T)
-  ) %>%
-  mutate( se=sd/sqrt(n))  %>%
-  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
-
-#barplot
-a_pie_p <- ggplot(sum_var_gamma_a_S_PIE) +
-  geom_bar(aes(x=site_type, y=mean, fill = site_type), stat = "identity", width = 0.7) +
-  geom_errorbar( aes(x=site_type, ymin=mean-se, ymax=mean+se), width=0.15, 
-                 colour="black", alpha=0.7, linewidth=0.5) + theme_bw() + 
-  xlab("Site Type") + ylab(expression(Mean~Evenness~(S[PIE]))) + theme(legend.position = 'none')
-
-a_pie_p
-
-## arranging plots
-grid.arrange(arrangeGrob(site_abun, a_p, a_sn_p, a_pie_p), ncol = 1, nrow = 1) 
-
-
-
-###### SUPPLEMENT S_asmptote plot
-## generating the means, sd, se, and ic for S_PIE
-sum_var_gamma_a_S_asm <- dat %>%
-  group_by(site_type) %>%
-  summarise( 
-    n=n(),
-    mean=mean(S_asymp, na.rm = T),
-    sd=sd(S_asymp, na.rm = T)
-  ) %>%
-  mutate( se=sd/sqrt(n))  %>%
-  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
-
-#barplot
-a_asm_p <- ggplot(sum_var_gamma_a_S_asm) +
-  geom_bar(aes(x=site_type, y=mean, fill = site_type), stat = "identity", width = 0.7) +
-  geom_errorbar( aes(x=site_type, ymin=mean-se, ymax=mean+se), width=0.15, 
-                 colour="black", alpha=0.7, linewidth=0.5) + theme_bw() + 
-  xlab("Site Type") + ylab(expression(Extrapolated~Richness~(S[asymptote]))) + theme(legend.position = 'none')
-
-a_asm_p
 
 
 #' # Model Diagnostics
@@ -290,7 +204,7 @@ for(i in seq_along(div_mods_me)) {
 #' for all strings just take first value because these do not change during
 #' repeat visits
 dat_chr_agg <- dat %>%
-  group_by(wetland_id, year) %>% 
+  group_by(wetland_id, year, block) %>% 
   summarise_if(is.character, first)
 
 #' for numeric values this mostly don't change visit to visit but a few do
@@ -419,7 +333,7 @@ for (i in 1:nboot) {
                        effort = 10, scale = 'beta')))
     betas <- rbind(betas, 
                    data.frame(boot = i , site_type = 'wetland',
-                     calc_comm_div(wetlands, index = c('S', 'S_n', 'S_PIE'),
+                     calc__comm_div(wetlands, index = c('S', 'S_n', 'S_PIE'),
                        effort = 10, scale = 'beta')))
     nmin <- max(min(rowSums(uplands)), 5)
     S_up <- apply(uplands, 1, rarefaction, 'IBR', effort  = 1:nmin, extrapolate = TRUE,
@@ -446,7 +360,7 @@ for (i in 1:nboot) {
                                effort = 1:sum(wetlands), S = rarefaction(wetlands, 'IBR')))
   }
 }  
-
+??calc_comm_div
 #+ eval = FALSE
 save(betas, curves, file = './results/div_boostrap_results.Rdata')
 
