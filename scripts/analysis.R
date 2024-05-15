@@ -20,7 +20,10 @@ knitr::opts_knit$set(root.dir='../', tidy = TRUE)
 #' Read in data
 dat <- read.csv('./data/filtered_data/clean_bird_dat.csv')
 comm <- read.csv('./data/filtered_data/clean_bird_comm.csv')
+coords <- read.csv('./data/raw_data - wetland_coords.csv')
 
+dat <- merge(dat, coords[ , c('wetland_id', 'utm_easting', 'utm_northing')],
+             all.x = TRUE, all.y = FALSE)
 
 # filtering out blocks 7 + 8
 dat <- dat %>%
@@ -51,11 +54,7 @@ comm <- comm[ , -1]
 bird_rda <- rda(comm ~ site_type + site, 
                 data = dat)
 bird_rda
-?rda
 RsquareAdj(bird_rda)
-
-bird_rda <- rda(comm ~ site_type + site, 
-                data = dat)
 
 par(mfrow=c(1, 1))
 
@@ -85,7 +84,7 @@ dat$S_n <- apply(comm, 1, rarefaction, 'IBR', effort = 5, extrapolate = F,
                  quiet_mode = TRUE)
 # singletons will result in rarefaction that results in 1 species which isn't useful
 dat$S_n <- ifelse(dat$S_n == 1, NA, dat$S_n)
-dat$S_PIE <- calc_PIE(comm, ENS = TRUE)
+dat$S_PIE <- calc_SPIE(comm)
 dat$S_asymp <- apply(comm, 1, calc_chao1)
 
 # glm models
@@ -147,11 +146,8 @@ for(i in seq_along(div_mods_me)) {
   table_output[[i]] <- (bolker_ci(div_mods_me[[i]], newdata))
 }
 table_output2 <- as.data.frame(table_output)
-write.csv(table_output, file = "table.csv")
+write.csv(table_output, file = "./results/div_mods_me_ci.csv")
 
-table_output <- (bolker_ci(div_mods_me[[]], newdata))
-
-?write.csv
 # creating the final PLOTS for upland v wetland-----
 
 plt <- list()
@@ -289,18 +285,19 @@ lapply(div_mods_me, anova)
 # Note: block 3 the upland site UP03 only has 1 individual across the 3 visits
 # in the 0-25m range so drop this site and block from analysis
 
-nboot <- 500
+nboot <- 100
 uni_yrs <- unique(dat_agg$year)
-uni_blocks <- 1:6 # not including blocks 7 & 8 here b/c these only had wetland sites
+uni_blocks <- 1:6
+uni_blocks <- c(1:2, 4:6) # not including blocks 7 & 8 here b/c these only had wetland sites
 #uni_blocks <- 1:4 # to only do halidon sites
 
 betas <- data.frame()
 curves <- data.frame()
 
-Navg_up <- sum(comm_agg[dat_agg$site_type == 'upland', ]) / 
-           nrow(comm_agg[dat_agg$site_type == 'upland', ])
-Navg_we <- sum(comm_agg[dat_agg$site_type == 'wetland', ]) /
-           nrow(comm_agg[dat_agg$site_type == 'wetland', ])
+Navg_up <- sum(comm_agg[dat_agg$site_type == 'upland' & dat_agg$block %in% uni_blocks, ]) / 
+           nrow(comm_agg[dat_agg$site_type == 'upland' & dat_agg$block %in% uni_blocks, ])
+Navg_we <- sum(comm_agg[dat_agg$site_type == 'wetland' & dat_agg$block %in% uni_blocks, ]) /
+           nrow(comm_agg[dat_agg$site_type == 'wetland' & dat_agg$block %in% uni_blocks, ])
 
 #+ eval = FALSE
 for (i in 1:nboot) {
@@ -333,34 +330,149 @@ for (i in 1:nboot) {
                        effort = 10, scale = 'beta')))
     betas <- rbind(betas, 
                    data.frame(boot = i , site_type = 'wetland',
-                     calc__comm_div(wetlands, index = c('S', 'S_n', 'S_PIE'),
+                     calc_comm_div(wetlands, index = c('S', 'S_n', 'S_PIE'),
                        effort = 10, scale = 'beta')))
     nmin <- max(min(rowSums(uplands)), 5)
-    S_up <- apply(uplands, 1, rarefaction, 'IBR', effort  = 1:nmin, extrapolate = TRUE,
+    # compute alpha scale upland rarefaction curves
+    S_up <- apply(uplands, 1, rarefaction, 'SBR', effort  = 1:nmin, extrapolate = TRUE,
                   quiet_mode = TRUE)
-    if (is.matrix(S_up)) S_up <- rowMeans(S_up)
+    if (is.matrix(S_up)) 
+      S_up <- rowMeans(S_up)
     curves <- rbind(curves,
                     data.frame(boot = i, site_type = 'upland', scale = 'alpha',
                                effort = 1:nmin, S = S_up))
+    # compute gamma scale upland rarefaction curve
     curves <- rbind(curves,
                     data.frame(boot = i, site_type = 'upland', scale = 'gamma',
                                effort = 1:sum(uplands), S = rarefaction(uplands, 'IBR')))
     
     nmin <- max(min(rowSums(wetlands)), 5)
-        S_we <- apply(wetlands, 1, rarefaction, 'IBR', effort  = 1:nmin, extrapolate = TRUE,
+    # compute alpha scale wetland rarefaction curves
+    S_we <- apply(wetlands, 1, rarefaction, 'SBR', effort  = 1:nmin, extrapolate = TRUE,
                   quiet_mode = TRUE)
-    if (is.matrix(S_we)) S_we <- rowMeans(S_we)
+    if (is.matrix(S_we)) 
+      S_we <- rowMeans(S_we)
     
-
+    
     curves <- rbind(curves,
                     data.frame(boot = i, site_type = 'wetland', scale = 'alpha',
                                effort = 1:nmin, S = S_we))
+    # compute gamma scale wetland rarefaction curve
     curves <- rbind(curves,
                     data.frame(boot = i, site_type = 'wetland', scale = 'gamma',
                                effort = 1:sum(wetlands), S = rarefaction(wetlands, 'IBR')))
-  }
+    S_study <- rarefaction(rbind(wetlands, uplands), 'SBR', extrapolate = TRUE,
+                           effort = 1:500)
+    curves <- rbind(curves,
+                    data.frame(boot = i, site_type = 'both', scale = 'study',
+                               effort = 1:500, S = S_study))
+    }
 }  
-??calc_comm_div
+
+# bootstrapped sample based rarefactions that go across spatial and temporal variation
+curves <- data.frame()
+for (i in 1:nboot) {
+  uplands <- data.frame()
+  wetlands <- data.frame()
+    for (j in seq_along(uni_yrs)) {
+      for (k in seq_along(uni_blocks)) { 
+        good_rows <- dat_agg$year == uni_yrs[j] & 
+          dat_agg$block == uni_blocks[k] 
+        sample_ids <- unique(dat_agg$wetland_id[good_rows])
+        # from this list draw a single wetland and a single upland
+        upland_id <- sample_ids[grep('UP', sample_ids)]
+        wetland_id <- sample(sample_ids[!(sample_ids %in% upland_id)], 1)
+        upland_samples <- comm_agg[good_rows & dat_agg$wetland_id == upland_id, ]
+        wetland_samples <- comm_agg[good_rows & dat_agg$wetland_id == wetland_id, ]
+        # keep just one of the sites in the wetland samples
+        #random_wetland_id <- sample(unique(wetland_samples$wetland_id), 1)
+        #wetland_samples <- subset(wetland_samples, wetland_id == random_wetland_id)
+        # ok now we have 3 samples from the upland and 3 samples from a wetland
+        # in a specific year
+        uplands <- rbind(uplands, upland_samples)
+        wetlands <- rbind(wetlands, wetland_samples)
+      }
+    }
+    nsamp <- nrow(uplands)
+    # compute upland sample-based rarefaction curves
+    S_up <- rarefaction(uplands, 'SBR', effort=c(1:nsamp, 100),
+                        extrapolate = TRUE, quiet_mode = TRUE)
+    curves <- rbind(curves,
+                    data.frame(boot = i, site_type = 'upland', scale = 'gamma',
+                               effort = names(S_up), S = S_up))
+    # compute wetland sample-based rarefaction curves
+    S_we <- rarefaction(wetlands, 'SBR', effort=c(1:nsamp, 100),
+                        extrapolate = TRUE, quiet_mode = TRUE)
+    curves <- rbind(curves,
+                    data.frame(boot = i, site_type = 'wetland', scale = 'gamma',
+                               effort = names(S_we), S = S_we))
+    S_study <- rarefaction(rbind(wetlands, uplands), 'SBR', extrapolate = TRUE,
+                           effort = c(1:(2*nsamp), 100), quiet_mode = TRUE)
+    curves <- rbind(curves,
+                    data.frame(boot = i, site_type = 'both', scale = 'study',
+                               effort = names(S_study), S = S_study))
+}  
+
+# bootstrapped sample based rarefactions that go across spatial and temporal variation
+curves <- data.frame()
+for (i in 1:nboot) {
+  uplands <- data.frame()
+  wetlands <- data.frame()
+  for (j in seq_along(uni_yrs)) {
+    for (k in seq_along(uni_blocks)) { 
+      good_rows <- dat$year == uni_yrs[j] & 
+        dat$block == uni_blocks[k] 
+      sample_ids <- unique(dat$wetland_id[good_rows])
+      # from this list draw a single wetland and a single upland
+      upland_id <- sample_ids[grep('UP', sample_ids)]
+      wetland_id <- sample(sample_ids[!(sample_ids %in% upland_id)], 1)
+      upland_samples <- comm[good_rows & dat$wetland_id == upland_id, ]
+      wetland_samples <- comm[good_rows & dat$wetland_id == wetland_id, ]
+      # keep just one of the sites in the wetland samples
+      #random_wetland_id <- sample(unique(wetland_samples$wetland_id), 1)
+      #wetland_samples <- subset(wetland_samples, wetland_id == random_wetland_id)
+      # ok now we have 3 samples from the upland and 3 samples from a wetland
+      # in a specific year
+      uplands <- rbind(uplands, upland_samples)
+      wetlands <- rbind(wetlands, wetland_samples)
+    }
+  }
+  # compute upland sample-based rarefaction curves
+  S_up <- vegan::specaccum(uplands, conditioned = FALSE)
+  S_up_pool <- specpool(uplands)
+  curves <- rbind(curves,
+                  data.frame(boot = i, site_type = 'upland', scale = 'gamma',
+                             effort = c(S_up$sites, 100),
+                             S = c(S_up$richness, S_up_pool$chao),
+                             S_hi = c(S_up$richness + S_up$sd, 
+                                      S_up_pool$chao + S_up_pool$chao.se),
+                             S_lo = c(S_up$richness - S_up$sd, 
+                                      S_up_pool$chao - S_up_pool$chao.se)))
+  # compute wetland sample-based rarefaction curves
+  S_we <- vegan::specaccum(wetlands, conditioned = FALSE)
+  S_we_pool <- specpool(wetlands)
+  curves <- rbind(curves,
+                  data.frame(boot = i, site_type = 'wetland', scale = 'gamma',
+                             effort = c(S_we$sites, 100),
+                             S = c(S_we$richness, S_we_pool$chao),
+                             S_hi = c(S_we$richness + S_we$sd, 
+                                      S_we_pool$chao + S_we_pool$chao.se),
+                             S_lo = c(S_we$richness - S_we$sd, 
+                                      S_we_pool$chao - S_we_pool$chao.se)))
+  
+  S_study <- vegan::specaccum(rbind(wetlands, uplands), conditioned = FALSE)
+  S_study_pool <- specpool(rbind(wetlands, uplands))
+  curves <- rbind(curves,
+                  data.frame(boot = i, site_type = 'both', scale = 'study',
+                             effort = c(S_study$sites, 100),
+                             S = c(S_study$richness, S_study_pool$chao),
+                             S_hi = c(S_study$richness + S_study$sd,
+                                      S_study_pool$chao + S_study_pool$chao.se),
+                             S_lo = c(S_study$richness - S_study$sd,
+                                      S_study_pool$chao - S_study_pool$chao.se)))
+}  
+
+
 #+ eval = FALSE
 save(betas, curves, file = './results/div_boostrap_results.Rdata')
 
@@ -373,9 +485,63 @@ load(file = './div_boostrap_results.Rdata')
 beta_sum <- betas %>% group_by(index, site_type) %>%
   summarize(beta_avg = mean(value), beta_lo = quantile(value, 0.025),
             beta_hi = quantile(value, 0.975))
+
+curves$effort <- as.integer(curves$effort)
+curves_sum <- curves %>% group_by(site_type, scale, effort) %>%
+  summarize(S = mean(S), S_lo = mean(S_lo), S_hi = mean(S_hi))
+
+
+
 curves_sum <- curves %>% group_by(site_type, scale, effort) %>%
   summarize(S_avg = mean(S), S_lo = quantile(S, 0.025), S_hi = quantile(S, 0.975))
 
+
+
+
+plot(S ~ effort , data = curves_sum, subset = scale == 'study' & effort < 100,
+     xlim = c(1, 100), type = 'l', lwd = 2, log = 'xy', ylim = c(1,150), 
+     xlab = 'Number of point counts', ylab = 'Species richness', 
+     bty = 'n', axes=F)
+axis(side=1, at = c(1, 2, 5, 10, 20, 50))
+axis(side=2)
+#with(subset(curves_sum, scale == 'study' & effort < 100), 
+#     polygon(c(1:24, 24:1), c(S_hi, rev(S_lo)), col = 'grey', border = NA))
+with(subset(curves_sum, site_type == 'wetland' & effort < 100), 
+     polygon(c(1:36, 36:1), c(S_hi, rev(S_lo)), 
+             col =  rgb(0, 191, 196, maxColorValue = 255, alpha = 255/2),
+             border = NA))
+with(subset(curves_sum, site_type == 'upland' & effort < 100), 
+     polygon(c(1:36, 36:1), c(S_hi, rev(S_lo)), 
+             col = rgb(248, 118, 109, maxColorValue = 255, alpha = 255/2), 
+             border = NA))
+with(subset(curves_sum, effort == 100),
+     points(c(80, 93, 110), S, pch = 19, cex = 1.1, 
+     col = c(1, "#00BFC4", "#F8766D")))
+with(subset(curves_sum, scale == 'study' & effort == 100), 
+     arrows(80, S_hi, 80, S_lo, angle = 90, code = 3, length = 0.075,
+            lwd = 2))
+with(subset(curves_sum, site_type == 'wetland' & effort == 100), 
+     arrows(93, S_hi, 93, S_lo, angle = 90, code = 3, length = 0.075,
+            col =  "#00BFC4", lwd = 2))
+with(subset(curves_sum, site_type == 'upland' & effort == 100), 
+     arrows(110, S_hi, 110, S_lo, angle = 90, code = 3, length = 0.075,
+            col = "#F8766D", lwd = 2))
+legend('bottomright', c('Wetlands and Uplands', 'Wetlands', 'Uplands'),
+       lty = 1, lwd = c(2, 10, 10), 
+       col = c(1, "#00BFC4", "#F8766D"), bty = 'n')
+
+
+
+lines(S_hi ~ effort , data = curves_sum, subset = scale == 'study')
+lines(S_lo ~ effort , data = curves_sum, subset = scale == 'study')
+lines(S_hi ~ effort , data = curves_sum, 
+      subset = scale == 'gamma' & site_type =='wetland', col='blue')
+lines(S_lo ~ effort , data = curves_sum, 
+      subset = scale == 'gamma' & site_type =='wetland', col='blue')
+lines(S_hi ~ effort , data = curves_sum, 
+      subset = scale == 'gamma' & site_type =='upland', col='red')
+lines(S_lo ~ effort , data = curves_sum, 
+      subset = scale == 'gamma' & site_type =='upland', col='red')
 
 #' Here are the computed beta-diversity metrics with 95% CI 
 beta_sum
@@ -384,7 +550,6 @@ as.data.frame(beta_sum)
 
 #re-ordering
 beta_order <- rbind(beta_sum[3:8, ], beta_sum[1:2 , ])
-?barplot
 
 # make parplot
 par(mfrow=c(1,1))
@@ -432,10 +597,36 @@ lines(S_avg ~ effort, curves_sum, subset = site_type == 'upland' & scale == 'alp
       col = 'pink')
 
 #' classic un-balanced rarefaction comparison
-dat_mob_in <- make_mob_in(dat[ , 12:66], dat)
+dat_mob_in <- make_mob_in(dat[ , 12:66], dat,
+                          coord_names = c('utm_easting', 'utm_northing'))
+
 par(mfrow=c(1,3))
-plot_rarefaction(dat_mob_in, group_var = 'site_type', method = 'IBR', avg= TRUE,
+plot_rarefaction(dat_mob_in, group_var = 'site_type',
+                 method = 'IBR', avg= TRUE,
                  log='xy')
+
+par(mfrow=c(1,3))
+SBR
+
+
+# spatial sample-based rarefaction comparison
+
+sSBR_wet <- rarefaction(dat_mob_in$comm[dat$site_type == 'wetland', ],
+                        method = 'spexSBR', 
+                        coords = dat[dat$site_type == 'wetland',
+                                     c('utm_easting', 'utm_northing')],
+                        latlong = FALSE, spat_algo = 'kNN')
+sSBR_up <- rarefaction(dat_mob_in$comm[dat$site_type == 'upland', ],
+                       method = 'spexSBR', 
+                       coords = dat[dat$site_type == 'upland',
+                                    c('utm_easting', 'utm_northing')],
+                       latlong = FALSE, spat_algo = 'kNN')
+
+plot(as.numeric(names(sSBR_wet)), sSBR_wet, ylim = c(5,40),
+     xlim = c(200, 5000), log='xy', type = 'l', lwd = 2,
+     xlab = 'Distance (m)', ylab = 'Species richness')
+lines(as.numeric(names(sSBR_up)), sSBR_up, col='red',
+      lwd=2)
 
 # study scale comparison
 
@@ -448,21 +639,25 @@ addCI <- function(S, col = 'grey') {
 }
   
 
-par(mfrow=c(1,1))
 Sstudy <- rarefaction(dat_mob_in$comm, 'SBR')
-Sup <- rarefaction(dat_mob_in$comm[dat_mob_in$env$site_type == 'upland', ], 'SBR', 
-                   sd = FALSE)
-Swet <- rarefaction(dat_mob_in$comm[dat_mob_in$env$site_type == 'wetland', ], 'SBR', 
-                    sd = FALSE)
+Sup <- rarefaction(dat_mob_in$comm[dat_mob_in$env$site_type == 'upland', ],
+                   method = 'SBR')
+Swet <- rarefaction(dat_mob_in$comm[dat_mob_in$env$site_type == 'wetland', ],
+                    method = 'SBR')
+par(mfrow=c(1,1))
 plot(Sstudy, xlab = 'Number of Point Counts', ylab = 'Number of Species',
      type ='l', lwd = 2, frame.plot = F, xlim = c(0, 200), ylim = c(0, 50))
-#addCI(Sup)
-#addCI(Swet)
+addCI(Sup)
+addCI(Swet)
 lines(Sup, col = '#F8766D', lwd = 2)
 
 lines(Swet, col = '#00BFC4', lwd = 2)
 legend('bottomright', c('Wetlands & Uplands', 'Wetlands', 'Uplands'),
        col=c('black','#00BFC4','#F8766D'), lty = 1, lwd = 2, bty='n')
+
+
+sup2 <- specaccum(dat_mob_in$comm[dat_mob_in$env$site_type == 'upland', ])
+
 
 tst <- aggregate(dat_agg[ , 69:123], list(dat_agg$site_type), sum)
 rowSums(tst[ , -1])
