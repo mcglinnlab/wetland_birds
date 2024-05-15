@@ -63,11 +63,15 @@ orditorp(bird_rda, display= 'sp', col = "red", air = 0.65)
 
 pdf('fig4.pdf')
 plot(bird_rda, type='n', scaling=1)
-orditorp(bird_rda, display='sp', scaling = 1, cex=1, col='black', air = 2)
+orditorp(bird_rda, display='sp', scaling = 1, cex=1, col='black', air = 1.5)
 text(bird_rda, display='bp', col='red', labels = c('Upland', 'Wetland','Halidon', 'Stono'))
 dev.off()
 
+# parsing through both variables
 anova(bird_rda, by='margin', permutations=1000)
+
+#overall model fit
+anova(bird_rda)
 
 #head(dat)
 #head(comm)
