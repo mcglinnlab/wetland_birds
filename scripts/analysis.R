@@ -1,6 +1,6 @@
 #' ---
 #' title: "Wetland Bird Analysis"
-#' author: "Dan McGlinn"
+#' author: "Dan McGlinn and Jackson Barratt Heitmann"
 #' date: '`r paste("First created on 2022-02-24. Updated on", Sys.Date())`'
 #' output: 
 #'  pdf_document
@@ -79,6 +79,15 @@ anova(bird_rda)
 dim(dat)
 dim(comm)
 
+test <- dat %>%
+  group_by(site_type) %>%
+  summarize_if(is.numeric, sum)
+
+test <- test[, c(1, 6:60)]
+
+rowSums(test >0)
+
+
 #' #Q1: is bird diversity higher in wetlands and uplands 
 #div <- calc_biodiv(comm, dat$uni_id_date, effort = 5, extrapolate = TRUE)
 
@@ -88,7 +97,7 @@ dat$S_n <- apply(comm, 1, rarefaction, 'IBR', effort = 5, extrapolate = F,
                  quiet_mode = TRUE)
 # singletons will result in rarefaction that results in 1 species which isn't useful
 dat$S_n <- ifelse(dat$S_n == 1, NA, dat$S_n)
-dat$S_PIE <- calc_SPIE(comm)
+dat$S_PIE <- calc_PIE(comm)
 dat$S_asymp <- apply(comm, 1, calc_chao1)
 
 # glm models
@@ -103,6 +112,7 @@ lapply(div_mods, summary)
 lapply(div_mods, anova)
 
 
+######### These are the model outputs reported in manuscript
 #' use mixed effect model to account for pseudo-replicates
 
 indices <- c('N', 'S', 'S_n', 'S_PIE', 'S_asymp')
@@ -238,7 +248,7 @@ summary(dat_agg$N)
 dat_agg$S_n <- apply(comm_agg, 1, rarefaction, 'IBR', effort = 10, extrapolate = F,
                  quiet_mode = TRUE)
 dat_agg$S_n <- ifelse(dat_agg$S_n == 1, NA, dat_agg$S_n)
-dat_agg$S_PIE <- calc_SPIE(comm_agg)
+dat_agg$S_PIE <- calc_PIE(comm_agg)
 dat_agg$S_asymp <- apply(comm_agg, 1, calc_chao1)
 dat_agg$pct_rare <- apply(comm_agg, 1, calc_div, 'pct_rare', rare_thres = 0.2)
 
@@ -289,7 +299,7 @@ lapply(div_mods_me, anova)
 # so that a reasonable minimum number of individuals is sampled at the site to compute
 # a beta-diversity statistic for. 
 # loop through each block and year and pull 1 upland and 1 wetland
-# Note:  two blocks do not have an upland and a wetlands sites, blocks 7 & 8
+
 
 # the rarefaction analysis follows a similar algo but it uses the 
 # unaggregated community data so the grain is a single point count
@@ -408,7 +418,7 @@ save(betas, curves, file = './results/div_boostrap_results.Rdata')
 
 
 #+ eval = TRUE
-load(file = './div_boostrap_results.Rdata')
+load(file = './results/div_boostrap_results.Rdata')
 
 #' aggregated across boostraps
 #+ eval = TRUE
@@ -444,6 +454,7 @@ curves$effort <- as.integer(curves$effort)
 curves_sum <- curves %>% group_by(site_type, scale, effort) %>%
   summarize(S = mean(S), S_lo = mean(S_lo), S_hi = mean(S_hi))
 
+
 #pdf('./results/sample_based_bootstrapped_rarefaction.pdf')
 par(mfrow=c(1,1))
 plot(S ~ effort , data = curves_sum, subset = scale == 'study' & effort < 100,
@@ -474,12 +485,15 @@ with(subset(curves_sum, site_type == 'upland' & effort == 100),
             col = "#F8766D", lwd = 2))
 legend('bottomright', c('Wetlands and Uplands', 'Wetlands', 'Uplands'),
        lty = 1, lwd = c(2, 10, 10), 
-       col = c(1, "#00BFC4", "#F8766D"), bty = 'n')
+       col = c(1, "#00BFC4", "#F8766D"), bty = 'n', inset = 0.2)
 #dev.off()
 
 
 
 
+
+
+########## Rarefaction for all point counts in both habitats
 #' classic un-balanced rarefaction comparison
 dat_mob_in <- make_mob_in(dat[ , 12:66], dat,
                           coord_names = c('utm_easting', 'utm_northing'))
@@ -500,7 +514,18 @@ plot(Sstudy, xlab = 'Number of Point Counts', ylab = 'Number of Species',
 lines(Sup, col = '#F8766D', lwd = 2)
 lines(Swet, col = '#00BFC4', lwd = 2)
 legend('bottomright', c('Wetlands & Uplands', 'Wetlands', 'Uplands'),
-       col=c('black','#00BFC4','#F8766D'), lty = 1, lwd = 2, bty='n')
+       col=c('black','#00BFC4','#F8766D'), lty = 1, lwd = 2, bty='n', inset = 4)
+?legend
+
+
+
+
+####### SUPPLEMENTAL FIGURES
+## Halidon v Stono
+
+
+
+
 
 # Chp 2 within wetland variation ------
 
