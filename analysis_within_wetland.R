@@ -67,11 +67,11 @@ div_mods_env$N <- glm(N ~ canopy_cover_sim + crown_hull_mean + pine_dbh + tupelo
 div_mods_env$S <- glm(S ~ canopy_cover_sim + crown_hull_mean + pine_dbh + tupelo_dbh + arc_area + 
                         tree_height_sd + tree_height_mean + groundcover, data = dat_wet, family = 'poisson')
 div_mods_env$S_n <- glm(S_n ~ canopy_cover_sim + crown_hull_mean + pine_dbh + tupelo_dbh + arc_area + 
-                          tree_height_sd + tree_height_mean + groundcover, data = dat_wet, family = 'poisson')
+                          tree_height_sd + tree_height_mean + groundcover, data = dat_wet, family = 'quasipoisson')
 div_mods_env$S_PIE <- glm(S_PIE ~ canopy_cover_sim + crown_hull_mean + pine_dbh + tupelo_dbh + arc_area + 
                             tree_height_sd + tree_height_mean + groundcover, data = dat_wet, family = 'quasipoisson')
 div_mods_env$S_asymp <- glm(S_asymp ~ canopy_cover_sim + crown_hull_mean + pine_dbh + tupelo_dbh + arc_area + 
-                              tree_height_sd + tree_height_mean + groundcover, data = dat_wet, family = 'poisson')
+                              tree_height_sd + tree_height_mean + groundcover, data = dat_wet, family = 'quasipoisson')
 
 lapply(div_mods_env, summary)
 
