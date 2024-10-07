@@ -520,10 +520,86 @@ legend('bottomright', c('Wetlands & Uplands', 'Wetlands', 'Uplands'),
 
 
 
+
+
+
+
+
+
+######### FIGURE 5 - remade with ggplot
+library(ggplot2)
+library(dplyr)
+
+# Prepare data for polygons
+wetland_polygon <- curves_sum %>%
+  filter(site_type == 'wetland' & effort < 100) %>%
+  summarize(x = c(1:36, 36:1), y = c(S_hi, rev(S_lo)))
+
+upland_polygon <- curves_sum %>%
+  filter(site_type == 'upland' & effort < 100) %>%
+  summarize(x = c(1:36, 36:1), y = c(S_hi, rev(S_lo)))
+
+test <- curves_sum %>% filter(effort == 100)
+test$site_type <- factor(test$site_type, levels = c("both", "wetland", "upland"))
+
+# Create ggplot
+ggplot() +
+  # Add polygons for wetland and upland
+  geom_polygon(data = wetland_polygon,
+               aes(x = x, y = y),
+               fill = rgb(0, 191, 196, maxColorValue = 255, alpha = 128),
+               color = NA) +
+  geom_polygon(data = upland_polygon,
+               aes(x = x, y = y),
+               fill = rgb(248, 118, 109, maxColorValue = 255, alpha = 128),
+               color = NA) +
+  # Add lines for species richness
+  geom_line(data = curves_sum %>% filter(scale == 'gamma' & effort < 37),
+            aes(x = effort, y = S, color = site_type), 
+            size = 1) +  # Ensure color is mapped to site_type
+  geom_line(data = curves_sum %>% filter(scale == 'study' & effort < 37),
+            aes(x = effort, y = S), 
+            size = 1, 
+            color = "black") +  # Fixed color for 'study'
+  # Add points for effort == 100
+  geom_point(data = test,
+             aes(x = effort, y = S, color = site_type), 
+             size = 3, 
+             shape = 19,
+             position = position_dodge2(width = 0.1)) +
+  # Add arrows for confidence intervals
+  geom_errorbar(data = test,
+                aes(x = effort, ymin = S_lo, ymax = S_hi, color = site_type),  
+                width = 0.1, 
+                size = 1, 
+                position = position_dodge2(width = 0.1)) +
+  # Set scales
+  scale_x_log10(limits = c(1, 120), breaks = c(1, 2, 5, 10, 20, 50)) +
+  scale_y_log10(limits = c(1, 100), breaks = c(1, 2, 5, 10, 20, 50)) +
+  # Customize labels
+  labs(x = 'Number of point counts', y = 'Species richness') +
+  theme_bw() +
+  theme(legend.position = c(0.8, 0.2),  # Change legend position
+        legend.box = "vertical",  # Ensure vertical stacking if multiple items
+        legend.title = element_text(size = 10),  # Adjust legend title size
+        legend.text = element_text(size = 8), 
+        legend.background = element_rect(fill = "transparent", color = NA),  # Make legend background transparent
+        legend.key = element_rect(fill = "transparent", color = NA),  # Make legend keys transparent# Adjust legend text size
+        plot.margin = margin(10, 10, 10, 10)) +  # Increase plot margins) +
+  # Add legend
+  scale_color_manual(values = c( "both" = "black", "wetland" = "#00BFC4", "upland" = "#F8766D"),  
+                     labels = c('Wetland and Uplands', 'Uplands', 'Wetlands'),
+                     name = "Site Type") +
+  guides(color = guide_legend(override.aes = list(size = 4)))
+
+
+
+
+
 ####### SUPPLEMENTAL FIGURES
 ## Halidon v Stono
 
-
+?geom_errorbar
 
 
 
