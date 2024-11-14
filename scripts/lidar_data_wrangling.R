@@ -6,7 +6,6 @@ library(dplyr)
 library(readr)
 library(mobr)
 library(vegan)
-library(lidR)
 library(remotes)
 library(lidR)
 library(sp)
@@ -27,8 +26,8 @@ library(GGally)
 
 ##STONO
 
-las <- readLAS("Stono_Preserve_all_returns.las", select='xyzcr' )
-wetland_coords <- read.csv("raw_data - wetland_coords.csv")
+las <- readLAS("./data/Stono_Preserve_all_returns.las", select='xyzcr' )
+wetland_coords <- read.csv("./data/raw_data - wetland_coords.csv")
 
 ## coordinate change to utm for Stono
 coords_ll <- las@data[ , c('X', 'Y')]
@@ -79,7 +78,7 @@ stono_indices <- c(21:31, 36:37)
 circle_LAS_by_wet <- clip_circle(ctg_segmented,
                                  x = wetland_coords$utm_easting[stono_indices],
                                  y = wetland_coords$utm_northing[stono_indices],
-                                 radius = 50)
+                                 radius = 25)
 
 names(circle_LAS_by_wet) <- wetland_coords$wetland_id[stono_indices]
 
@@ -104,44 +103,41 @@ colnames(stono_tree_metrics) <- c("tree_height_mean", "tree_height_sd", "crown_h
 ##MAKE THIS INTO A FUNCTION
 
 # Estimating forest cover using simulation model and crown hulls
-n_pts <- 1e4
-
-all_canopy_cover <- data.frame()
+all_canopy_cover <- data.frame(wetland_id = NULL, 
+                               canopy_cover_sim = NULL)
 
 for (i in seq_along(stono_crown_metrics)){
-  tst <- as(stono_crown_metrics[[i]], 'Spatial')
-  box <- bbox(tst)
-  rnd_pts <- data.frame(x = runif(n_pts, box[1,1], box[1,2]),
-                        y = runif(n_pts, box[2,1], box[2,2]))
+  tst <- stono_crown_metrics[[i]]
+  box <- st_bbox(tst)
+  n_pts <- 1e4
+  rnd_pts <- data.frame(x = runif(n_pts, box[1], box[3]),
+                        y = runif(n_pts, box[2], box[4]))
   
   # need to either only simulate points within the circle or 
   # drop those points greater than radius of circle from center
-  center <- as.data.frame(t(rowMeans(box)))
-  radius <- 50
+  center <- data.frame(x = mean(box[c(1,3)]), y = mean(box[c(2,4)]))
+  radius <- 25
   pt_dist <- raster::pointDistance(center, rnd_pts, lonlat = FALSE)
   rnd_pts <- rnd_pts[pt_dist < radius, ]
   # update number of random points
   n_pts <- nrow(rnd_pts)
   # set projection which is needed for over function
   rnd_pts <- SpatialPoints(rnd_pts)
-  proj4string(rnd_pts) <- crs(tst)
+  rnd_pts <- st_as_sf(rnd_pts)
+  st_crs(rnd_pts) <- st_crs(tst)
   
-  out <- over(rnd_pts, tst)
+  out <- st_intersection(rnd_pts, tst)
   
-  canopy_cover <- data.frame(names(stono_crown_metrics)[i],
-                             (sum(!is.na(out$treeID)) / n_pts) * 100)
+  canopy_cover <- data.frame(wetland_id = names(stono_crown_metrics)[i],
+                             canopy_cover_sim = (sum(!is.na(out$treeID)) / n_pts) * 100)
   
   all_canopy_cover <- rbind(all_canopy_cover, canopy_cover)
 }
 
-colnames(all_canopy_cover) <- c('wetland_id', 'canopy_cover_sim')
-
-
 ##LiDAR Data Manipulations
 ## Halidon 
 
-las_hh <- readLAS('Hallidon_Hill_all_returns.las', select='xyzc')
-
+las_hh <- readLAS('./data/Hallidon_Hill_all_returns.las', select='xyzc')
 
 ## coordinate change for Halidon
 coords_hh <- las_hh@data[ , c('X', 'Y')]
@@ -220,43 +216,44 @@ colnames(hh_tree_metrics) <- c("tree_height_mean", "tree_height_sd", "crown_hull
 lidar_tree_metrics <- rbind(stono_tree_metrics, hh_tree_metrics)
 
 # Estimating forest cover using simulation model and crown hulls
-n_pts <- 1e4
 
-all_canopy_cover_hh <- data.frame()
+all_canopy_cover_hh <- data.frame(wetland_id = NULL, 
+                                  canopy_cover_sim = NULL)
 
 for (i in seq_along(hh_crown_metrics)){
-  tst <- as(hh_crown_metrics[[i]], 'Spatial')
-  box <- bbox(tst)
-  rnd_pts <- data.frame(x = runif(n_pts, box[1,1], box[1,2]),
-                        y = runif(n_pts, box[2,1], box[2,2]))
+  tst <- hh_crown_metrics[[i]]
+  box <- st_bbox(tst)
+  n_pts <- 1e4
+  rnd_pts <- data.frame(x = runif(n_pts, box[1], box[3]),
+                        y = runif(n_pts, box[2], box[4]))
   
   # need to either only simulate points within the circle or 
   # drop those points greater than radius of circle from center
-  center <- as.data.frame(t(rowMeans(box)))
-  radius <- 50
+  center <- data.frame(x = mean(box[c(1,3)]), y = mean(box[c(2,4)]))
+  radius <- 25
   pt_dist <- raster::pointDistance(center, rnd_pts, lonlat = FALSE)
   rnd_pts <- rnd_pts[pt_dist < radius, ]
   # update number of random points
   n_pts <- nrow(rnd_pts)
   # set projection which is needed for over function
   rnd_pts <- SpatialPoints(rnd_pts)
-  proj4string(rnd_pts) <- crs(tst)
+  rnd_pts <- st_as_sf(rnd_pts)
+  st_crs(rnd_pts) <- st_crs(tst)
   
-  out <- over(rnd_pts, tst)
+  out <- st_intersection(rnd_pts, tst)
   
-  canopy_cover_hh <- data.frame(names(hh_crown_metrics)[i],
-                                (sum(!is.na(out$treeID)) / n_pts) * 100)
+  canopy_cover_hh <- data.frame(wetland_id = names(hh_crown_metrics)[i],
+                             canopy_cover_sim = nrow(out) / n_pts * 100)
   
   all_canopy_cover_hh <- rbind(all_canopy_cover_hh, canopy_cover_hh)
 }
-
-colnames(all_canopy_cover_hh) <- c('wetland_id', 'canopy_cover_sim')
 
 ## Combine both canopy cover simulations from Halidon and Stono
 
 all_canopy_cover <- rbind(all_canopy_cover, all_canopy_cover_hh)
 
-lidar_tree_metrics <- cbind(lidar_tree_metrics, all_canopy_cover)
-lidar_tree_metrics <- lidar_tree_metrics[ , c(-6)]
+lidar_tree_metrics$wetland_id <- row.names(lidar_tree_metrics)
+lidar_tree_metrics <- merge(lidar_tree_metrics, all_canopy_cover, by = 'wetland_id', all.x = TRUE)
 
-write.csv(lidar_tree_metrics, file = 'lidar_tree_metrics.csv', row.names = FALSE)
+write.csv(lidar_tree_metrics, file = './data/lidar_tree_metrics.csv', row.names = FALSE)
+
