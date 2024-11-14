@@ -1,21 +1,6 @@
 ##all necessary packages
-library(lattice)
-library(ggplot2)
-library(tidyr)
-library(dplyr)
-library(readr)
-library(mobr)
-library(vegan)
-library(remotes)
 library(lidR)
-library(sp)
-library(terra)
-library(rgdal)
 library(sf)
-library(geometry)
-library(gridExtra)
-library(lme4)
-library(GGally)
 
 ## LiDAR Data Manipulations
 ## This LiDAR analysis is broken up by site (STONO, HALIDON) due to the size of the .las
@@ -89,12 +74,17 @@ stono_tree_height_mean <- as.data.frame(stono_tree_height_mean)
 stono_tree_height_sd <- unlist(lapply(stono_crown_metrics, function(x) sd(x$Z)))
 stono_tree_height_sd <- as.data.frame(stono_tree_height_sd)
 
-stono_crown_hull_area_mean <- unlist(lapply(stono_crown_metrics, function(x) mean(x$convhull_area)))
+stono_crown_hull_area_mean <- unlist(lapply(stono_crown_metrics, function(x)  mean(x$convhull_area[x$Z > 3])))
 stono_crown_hull_area_mean <- as.data.frame(stono_crown_hull_area_mean)
 
-stono_tree_metrics <- cbind(stono_tree_height_mean, stono_tree_height_sd, stono_crown_hull_area_mean)
+stono_crown_hull_area_sd <- unlist(lapply(stono_crown_metrics, function(x)  sd(x$convhull_area[x$Z > 3])))
+stono_crown_hull_area_sd <- as.data.frame(stono_crown_hull_area_sd)
+
+stono_tree_metrics <- cbind(stono_tree_height_mean, stono_tree_height_sd,
+                            stono_crown_hull_area_mean, stono_crown_hull_area_sd)
 as.data.frame(stono_tree_metrics)
-colnames(stono_tree_metrics) <- c("tree_height_mean", "tree_height_sd", "crown_hull_mean")
+colnames(stono_tree_metrics) <- c("tree_height_mean", "tree_height_sd",
+                                  "crown_hull_mean", "crown_hull_sd")
 
 
 # lidar_out <- data.frame(wetland_coords[stono_indices, ], mean_tree, sd_tree)
@@ -107,7 +97,8 @@ all_canopy_cover <- data.frame(wetland_id = NULL,
                                canopy_cover_sim = NULL)
 
 for (i in seq_along(stono_crown_metrics)){
-  tst <- stono_crown_metrics[[i]]
+  # subset crown metrics for trees taller than 3 m
+  tst <- subset(stono_crown_metrics[[i]], Z > 3)
   box <- st_bbox(tst)
   n_pts <- 1e4
   rnd_pts <- data.frame(x = runif(n_pts, box[1], box[3]),
@@ -127,10 +118,11 @@ for (i in seq_along(stono_crown_metrics)){
   st_crs(rnd_pts) <- st_crs(tst)
   
   out <- st_intersection(rnd_pts, tst)
-  
+  # reduce points that hit multiple canopies to just one hit by not counting
+  # duplicate coordinates from out
+  perc_cov <- 100 * sum(!duplicated(st_coordinates(out$geometry))) / n_pts
   canopy_cover <- data.frame(wetland_id = names(stono_crown_metrics)[i],
-                             canopy_cover_sim = (sum(!is.na(out$treeID)) / n_pts) * 100)
-  
+                                canopy_cover_sim = perc_cov)
   all_canopy_cover <- rbind(all_canopy_cover, canopy_cover)
 }
 
@@ -206,12 +198,18 @@ hh_tree_height_mean <- as.data.frame(hh_tree_height_mean)
 hh_tree_height_sd <- unlist(lapply(hh_crown_metrics, function(x) sd(x$Z)))
 hh_tree_height_sd <- as.data.frame(hh_tree_height_sd)
 
-hh_crown_hull_area_mean <- unlist(lapply(hh_crown_metrics, function(x) mean(x$convhull_area)))
+# examine crown hull of trees when height great then 3 m
+hh_crown_hull_area_mean <- unlist(lapply(hh_crown_metrics, function(x) mean(x$convhull_area[x$Z > 3])))
 hh_crown_hull_area_mean <- as.data.frame(hh_crown_hull_area_mean)
 
-hh_tree_metrics <- cbind(hh_tree_height_mean, hh_tree_height_sd, hh_crown_hull_area_mean)
+hh_crown_hull_area_sd <- unlist(lapply(hh_crown_metrics, function(x) sd(x$convhull_area[x$Z > 3])))
+hh_crown_hull_area_sd <- as.data.frame(hh_crown_hull_area_sd)
 
-colnames(hh_tree_metrics) <- c("tree_height_mean", "tree_height_sd", "crown_hull_mean")
+hh_tree_metrics <- cbind(hh_tree_height_mean, hh_tree_height_sd,
+                         hh_crown_hull_area_mean, hh_crown_hull_area_sd)
+
+colnames(hh_tree_metrics) <- c("tree_height_mean", "tree_height_sd",
+                               "crown_hull_mean", "crown_hull_sd")
 
 lidar_tree_metrics <- rbind(stono_tree_metrics, hh_tree_metrics)
 
@@ -221,7 +219,8 @@ all_canopy_cover_hh <- data.frame(wetland_id = NULL,
                                   canopy_cover_sim = NULL)
 
 for (i in seq_along(hh_crown_metrics)){
-  tst <- hh_crown_metrics[[i]]
+  # subset crown metrics for trees taller than 3 m
+  tst <- subset(hh_crown_metrics[[i]], Z > 3)
   box <- st_bbox(tst)
   n_pts <- 1e4
   rnd_pts <- data.frame(x = runif(n_pts, box[1], box[3]),
@@ -241,9 +240,11 @@ for (i in seq_along(hh_crown_metrics)){
   st_crs(rnd_pts) <- st_crs(tst)
   
   out <- st_intersection(rnd_pts, tst)
-  
+  # reduce points that hit multiple canopies to just one hit by not counting
+  # duplicate coordinates from out
+  perc_cov <- 100 * sum(!duplicated(st_coordinates(out$geometry))) / n_pts
   canopy_cover_hh <- data.frame(wetland_id = names(hh_crown_metrics)[i],
-                             canopy_cover_sim = nrow(out) / n_pts * 100)
+                             canopy_cover_sim = perc_cov)
   
   all_canopy_cover_hh <- rbind(all_canopy_cover_hh, canopy_cover_hh)
 }
