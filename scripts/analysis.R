@@ -14,7 +14,6 @@ library(MuMIn)
 library(scales)
 library(ggplot2)
 library(gridExtra)
-library(boot.pval)
 #+ echo=FALSE
 knitr::opts_knit$set(root.dir='../', tidy = TRUE)
 
@@ -92,6 +91,15 @@ rowSums(test >0)
 #' #Q1: is bird diversity higher in wetlands and uplands 
 #div <- calc_biodiv(comm, dat$uni_id_date, effort = 5, extrapolate = TRUE)
 
+bird_mob_in <- make_mob_in(comm, dat, coord_names = c('utm_easting', 'utm_northing'))
+
+bird_div <- get_mob_stats(bird_mob_in, 'site_type', 
+                          index = c('N', 'S', 'S_n', 'S_PIE', 'S_asmp'), 
+                          effort_samples = 5, n_perm = 999, ci_n_boot = 1000)
+
+plot(bird_div, 'site_type')
+
+
 dat$N <- rowSums(comm)
 dat$S <- rowSums(comm > 0 )
 dat$S_n <- apply(comm, 1, rarefaction, 'IBR', effort = 5, extrapolate = F,
@@ -160,7 +168,7 @@ table_output <- list()
 for(i in seq_along(div_mods_me)) {
   table_output[[i]] <- (bolker_ci(div_mods_me[[i]], newdata))
 }
-table_output2 <- as.data.frame(table_output)
+table_output <- as.data.frame(table_output)
 write.csv(table_output, file = "./results/div_mods_me_ci.csv")
 
 # creating the final PLOTS for upland v wetland-----
@@ -300,6 +308,8 @@ lapply(div_mods_me, anova)
 # so that a reasonable minimum number of individuals is sampled at the site to compute
 # a beta-diversity statistic for. 
 # loop through each block and year and pull 1 upland and 1 wetland
+# compute spatial beta-diversity between the wetlands at the same site (stono or hh)
+# treat the two years simply as replicates
 
 
 # the rarefaction analysis follows a similar algo but it uses the 
@@ -310,48 +320,132 @@ uni_yrs <- unique(dat_agg$year)
 uni_blocks <- 1:6 # not including blocks 7 & 8 here b/c these only had wetland sites
 #uni_blocks <- 1:4 # to only do halidon sites
 
-betas <- data.frame()
+
 
 Navg_up <- sum(comm_agg[dat_agg$site_type == 'upland' & dat_agg$block %in% uni_blocks, ]) / 
            nrow(comm_agg[dat_agg$site_type == 'upland' & dat_agg$block %in% uni_blocks, ])
 Navg_we <- sum(comm_agg[dat_agg$site_type == 'wetland' & dat_agg$block %in% uni_blocks, ]) /
            nrow(comm_agg[dat_agg$site_type == 'wetland' & dat_agg$block %in% uni_blocks, ])
 
+nboot <- 100
+betas <- data.frame()
+deltas <- data.frame()
 #+ eval = FALSE
 for (i in 1:nboot) {
   for (j in seq_along(uni_yrs)) {
-    uplands <- data.frame()
+    # within each year compute a spatial beta diversity 
+    # there are fewer uplands so it is always the same set of plots
+    uplands <-  with(dat_agg, 
+                     comm_agg[site_type == 'upland' & year == uni_yrs[j], ])
+    # for wetlands we need to create a random subset of possible samples
     wetlands <- data.frame()
     for (k in seq_along(uni_blocks)) { 
        good_rows <- dat_agg$year == uni_yrs[j] & 
                     dat_agg$block == uni_blocks[k] 
        sample_ids <- unique(dat_agg$wetland_id[good_rows])
        # from this list draw a single wetland and a single upland
-       upland_id <- sample_ids[grep('UP', sample_ids)]
-       wetland_id <- sample(sample_ids[!(sample_ids %in% upland_id)], 1)
-       upland_samples <- comm_agg[good_rows & dat_agg$wetland_id == upland_id, ]
+       wetland_id <- sample(sample_ids[!(grepl('UP', sample_ids))], 1)
        wetland_samples <- comm_agg[good_rows & dat_agg$wetland_id == wetland_id, ]
        # keep just one of the sites in the wetland samples
        #random_wetland_id <- sample(unique(wetland_samples$wetland_id), 1)
        #wetland_samples <- subset(wetland_samples, wetland_id == random_wetland_id)
        # ok now we have 3 samples from the upland and 3 samples from a wetland
        # in a specific year
-       uplands <- rbind(uplands, upland_samples)
        wetlands <- rbind(wetlands, wetland_samples)
     }
-    # now capture rarefaction curve and compute beta div at two scales point count to block & block to study
-    #up_N_min <- min(rowSums(uplands))
-    #we_N_min <- min(rowSums(wetlands))
+    tmp_comm <- rbind(uplands, wetlands)
+    tmp_group <- data.frame(group = rep(c('up','wet'), each = 6))
+    tmp_mob_in <- make_mob_in(tmp_comm, tmp_group)
+    tmp_stats <- get_mob_stats(tmp_mob_in, 'group', c('S', 'S_PIE', 'S_n', 'S_C'),
+                               effort_samples = 10, C_target_gamma = 0.75,
+                               scales = 'beta', n_perm = 1,
+                               ci = FALSE)
     betas <- rbind(betas, 
-                   data.frame(boot = i , site_type = 'upland',
-                     calc_comm_div(uplands, index = c('S', 'S_n', 'S_PIE'),
-                       effort = 10, scale = 'beta')))
-    betas <- rbind(betas, 
-                   data.frame(boot = i , site_type = 'wetland',
-                     calc_comm_div(wetlands, index = c('S', 'S_n', 'S_PIE'),
-                       effort = 10, scale = 'beta')))
-    }
+                   data.frame(boot = i, tmp_stats$comm_div))
+    deltas <- rbind(deltas,
+                    data.frame(boot = i, tmp_stats$group_tests))
+  }
 }  
+out <- list(betas = betas, deltas = deltas)
+obs_D <- out$deltas %>%
+  group_by(index) %>%
+  summarize(D_avg = mean(D_bar),
+            D_lo = quantile(D_bar, 0.025),
+            D_hi = quantile(D_bar, 0.975))
+
+# add randomization component
+nperm = 1000
+beta_null <- data.frame()
+delta_null <- data.frame()
+#+ eval = FALSE
+for (n in 1:nperm) {
+  print(paste("PERMUTATION", n))
+  # shuffle the rows of comm_agg
+  comm_null <- comm_agg[sample(nrow(comm_agg)), ]
+  betas <- data.frame()
+  deltas <- data.frame()
+  for (i in 1:nboot) {
+    for (j in seq_along(uni_yrs)) {
+      # within each year compute a spatial beta diversity 
+      # there are fewer uplands so it is always the same set of plots
+      uplands <-  with(dat_agg, 
+                       comm_null[site_type == 'upland' & year == uni_yrs[j], ])
+      # for wetlands we need to create a random subset of possible samples
+      wetlands <- data.frame()
+      for (k in seq_along(uni_blocks)) { 
+        good_rows <- dat_agg$year == uni_yrs[j] & 
+          dat_agg$block == uni_blocks[k] 
+        sample_ids <- unique(dat_agg$wetland_id[good_rows])
+        # from this list draw a single wetland and a single upland
+        wetland_id <- sample(sample_ids[!(grepl('UP', sample_ids))], 1)
+        wetland_samples <- comm_null[good_rows & dat_agg$wetland_id == wetland_id, ]
+        # keep just one of the sites in the wetland samples
+        #random_wetland_id <- sample(unique(wetland_samples$wetland_id), 1)
+        #wetland_samples <- subset(wetland_samples, wetland_id == random_wetland_id)
+        # ok now we have 3 samples from the upland and 3 samples from a wetland
+        # in a specific year
+        wetlands <- rbind(wetlands, wetland_samples)
+      }
+      tmp_comm <- rbind(uplands, wetlands)
+      tmp_group <- data.frame(group = rep(c('up','wet'), each = 6))
+      tmp_mob_in <- make_mob_in(tmp_comm, tmp_group)
+      tmp_stats <- get_mob_stats(tmp_mob_in, 'group', c('S', 'S_PIE', 'S_n', 'S_C'),
+                                 effort_samples = 10, C_target_gamma = 0.75,
+                                 scales = 'beta', n_perm = 1,
+                                 ci = FALSE)
+      betas <- rbind(betas, 
+                     data.frame(boot = i, tmp_stats$comm_div))
+      deltas <- rbind(deltas,
+                      data.frame(boot = i, tmp_stats$group_tests))
+    }
+  }
+  # compute means across the bootstraps
+  beta_null <- rbind(beta_null, 
+                     betas %>% group_by(index, group) %>%
+                     summarize(beta_avg = mean(value)))
+  delta_null <- rbind(delta_null,
+                      deltas %>% group_by(index) %>%
+                      summarize(D_null = mean(D_bar)))
+}
+
+#+ eval = FALSE
+D_vals <- left_join(delta_null, obs_D)
+beta_tests <- D_vals |>
+  group_by(index) |>
+  summarize(D_obs = mean(.data$D_avg),
+            p = (sum(.data$D_null >= .data$D_avg) + 1) / (nperm + 1))
+obs_D
+out$betas |> 
+  group_by(group, index) |>
+  summarize(value = mean(value), 
+            lo = quantile(value, 0.025),
+            hi = quantile(value, 0.975))
+
+#+ eval = FALSE
+save(out, obs_D, beta_tests,
+     file = './results/beta_results.Rdata')
+#+ eval = TRUE
+load('./results/beta_results.Rdata')
 
 # bootstrapped sample based rarefactions that go across spatial and temporal variation
 # the grain is a single point count
@@ -415,28 +509,26 @@ for (i in 1:nboot) {
 }  
 
 #+ eval = FALSE
-save(betas, curves, file = './results/div_boostrap_results.Rdata')
-
+save(curves, file = './results/curves.Rdata')
 
 #+ eval = TRUE
-load(file = './results/div_boostrap_results.Rdata')
+load(file = './results/curves.Rdata')
 
 #' aggregated across boostraps
 #+ eval = TRUE
-beta_sum <- betas %>% group_by(index, site_type) %>%
+beta_sum <- out$betas %>% group_by(index, group) %>%
   summarize(beta_avg = mean(value), beta_lo = quantile(value, 0.025),
             beta_hi = quantile(value, 0.975))
 
 #' Here are the computed beta-diversity metrics with 95% CI 
 beta_sum
-beta_sum$site_type <- as.factor(beta_sum$site_type)
+beta_sum$group <- as.factor(beta_sum$group)
 as.data.frame(beta_sum)
 
 #re-ordering
-beta_order <- rbind(beta_sum[3:8, ], beta_sum[1:2 , ])
+beta_order <- beta_sum[c(1:2, 7:8, 3:6), ]
 
 # make barplot
-par(mfrow=c(1,1))
 tmp <- barplot(height = beta_order$beta_avg, col = c( "#F8766D", "#00BFC4"),
                border = NA, ylim = c(0, 5), 
                ylab = expression(italic(beta) * '-diversity'),
