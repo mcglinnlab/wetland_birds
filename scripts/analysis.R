@@ -38,6 +38,7 @@ dat <- dat %>%
 
 dat$block <- as.factor(dat$block)
 
+
 # getting rid of those same rows in the community matrix
 comm <- comm %>%
   filter(X %in% dat$uni_id_date)
@@ -374,7 +375,7 @@ obs_D <- out$deltas %>%
             D_hi = quantile(D_bar, 0.975))
 
 # add randomization component
-nperm = 1000
+nperm <- 1000
 beta_null <- data.frame()
 delta_null <- data.frame()
 #+ eval = FALSE
