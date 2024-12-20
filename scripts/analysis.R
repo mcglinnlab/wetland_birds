@@ -627,11 +627,11 @@ library(dplyr)
 # Prepare data for polygons
 wetland_polygon <- curves_sum %>%
   filter(site_type == 'wetland' & effort < 100) %>%
-  summarize(x = c(1:36, 36:1), y = c(S_hi, rev(S_lo)))
+  summarize(x = c(1:24, 24:1), y = c(S_hi, rev(S_lo)))
 
 upland_polygon <- curves_sum %>%
   filter(site_type == 'upland' & effort < 100) %>%
-  summarize(x = c(1:36, 36:1), y = c(S_hi, rev(S_lo)))
+  summarize(x = c(1:24, 24:1), y = c(S_hi, rev(S_lo)))
 
 test <- curves_sum %>% filter(effort == 100)
 test$site_type <- factor(test$site_type, levels = c("both", "wetland", "upland"))
@@ -639,19 +639,19 @@ test$site_type <- factor(test$site_type, levels = c("both", "wetland", "upland")
 # Create ggplot
 ggplot() +
   # Add polygons for wetland and upland
-  geom_polygon(data = wetland_polygon,
+  geom_polygon(data = wetland_polygon %>% filter(x < 25),
                aes(x = x, y = y),
                fill = rgb(0, 191, 196, maxColorValue = 255, alpha = 128),
                color = NA) +
-  geom_polygon(data = upland_polygon,
+  geom_polygon(data = upland_polygon %>% filter(x < 25),
                aes(x = x, y = y),
                fill = rgb(248, 118, 109, maxColorValue = 255, alpha = 128),
                color = NA) +
   # Add lines for species richness
-  geom_line(data = curves_sum %>% filter(scale == 'gamma' & effort < 37),
+  geom_line(data = curves_sum %>% filter(scale == 'gamma' & effort < 25),
             aes(x = effort, y = S, color = site_type), 
             size = 1) +  # Ensure color is mapped to site_type
-  geom_line(data = curves_sum %>% filter(scale == 'study' & effort < 37),
+  geom_line(data = curves_sum %>% filter(scale == 'study' & effort < 25),
             aes(x = effort, y = S), 
             size = 1, 
             color = "black") +  # Fixed color for 'study'
